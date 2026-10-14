@@ -9,3 +9,17 @@
 - Never report success without execution evidence. Block release for critical auth, booking or safety failures.
 - Keep context compact using docs/PROGRESS.md, docs/DECISIONS.md and scoped plans; do not duplicate the entire conversation.
 - Update progress with verified results and open issues. Request approval before changing architecture or scope.
+
+## Agent skills
+
+### Issue tracker
+
+Track issues as local Markdown under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five default triage status strings. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Use one root glossary and root ADR directory when those documents are needed. See `docs/agents/domain.md`.

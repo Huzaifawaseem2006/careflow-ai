@@ -13,7 +13,7 @@
 - Minimal conversation persistence with a **proposed** 30-day synthetic demo retention period; duration and deletion exceptions remain for final approval.
 - Configurable OpenAI model and evaluation budget; local Docker Compose deployment first. No clinical diagnosis, prescribing or definitive triage.
 - Establish evaluation infrastructure and a versioned synthetic dataset during Phase 1, before AI behavior. Deterministic security assertions; mocked and live runs labeled separately.
-- `PRD.md` is authoritative and remains byte-for-byte unchanged. `AGENTS.md` now contains only the owner's supplied nine instructions; the earlier added lines were removed.
+- `PRD.md` is authoritative and remains byte-for-byte unchanged. The owner's nine original `AGENTS.md` instructions are preserved; an `Agent skills` block was later appended with explicit owner approval for local issue tracking, triage and domain-doc pointers.
 
 ## Approval register
 
