@@ -1,6 +1,6 @@
 # Proposed architecture
 
-Status: owner review required. PRD v1.0 is authoritative; this document resolves implementation options provisionally, not by changing requirements. No described module exists yet.
+Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. Detailed schema/API choices still require task-level review. PRD v1.0 remains authoritative and unchanged. No described module exists yet.
 
 ## Minimal structure and boundaries
 
@@ -24,11 +24,11 @@ Routers validate transport inputs; services enforce auth and business rules; per
 
 ## Database sketch: PRD entities plus explicit proposals
 
-UUID keys; timezone-aware instants in UTC; clinic IANA timezone for display and schedule generation; money as fixed precision plus currency. Do not use floats for fees. Foreign keys and resource-scoped indexes are required. DDL and exact field types are a Phase 1/2 review artifact, not approved here.
+UUID keys; timezone-aware instants in UTC; one fictional Karachi clinic with `Asia/Karachi` for display and schedule generation; fees in fixed-precision PKR. Do not use floats for fees. Foreign keys and resource-scoped indexes are required. DDL and exact field types are a Phase 1/2 review artifact.
 
-Retain the PRD users, patients, staff, clinics, specialties, doctors, schedules, exceptions, appointments, knowledge documents/chunks, conversations/messages, handoffs and audit entities. Recommend one seeded clinic while retaining `clinic_id` authorization scope. A staff operator is a permission set rather than implicit access for all staff. Initial patient history is appointments only.
+Retain the PRD users, patients, staff, clinics, specialties, doctors, schedules, exceptions, appointments, knowledge documents/chunks, conversations/messages, handoffs and audit entities. Seed one fictional clinic while retaining `clinic_id` authorization scope. A staff operator is a permission set rather than implicit access for all staff. Initial patient history is appointments only.
 
-Proposed materialized `slots`: generated deterministically for a bounded horizon from schedules and blocking exceptions. Add a slot duration setting (missing in PRD), unique `(doctor_id, start_at)` and a positive interval check. Fixed, non-overlapping slots are a precondition of this design; schedule edits must never create overlaps or silently move booked appointments. Slots represent capacity; derive booked availability from active appointments rather than duplicating a booking flag. Mark invalidated unbooked slots unavailable. DST gaps/folds require explicit generation policy and tests.
+Approved persisted `slots`: 30-minute intervals generated deterministically for a bounded horizon from schedules and blocking exceptions. Propose unique `(doctor_id, start_at)` and a positive interval check. Fixed, non-overlapping slots are a precondition of this design; schedule edits must never create overlaps or silently move booked appointments. Capacity is one patient per slot; derive booked availability from active appointments rather than duplicating a booking flag. Mark invalidated unbooked slots unavailable. Define the generation horizon and DST policy explicitly, even though Karachi currently has no DST transition.
 
 Proposed appointment states: `booked`, `cancelled`; reschedule updates the owned appointment's slot with an audit event. Partial unique index on `slot_id` for `booked` appointments protects capacity; cancelled history remains. Preserve accepted fee/currency snapshot so later catalog edits do not rewrite the confirmed price. These are proposed additions, not existing fields.
 
@@ -49,17 +49,17 @@ PostgreSQL documents row locks and partial unique indexes; combining them is our
 
 ## Identity and authorization
 
-Recommend same-origin HttpOnly cookie sessions, with Secure cookies in hosted environments, CSRF protection, Origin checks and restrictive CORS. Identity provider choice remains pending. No identity/role/patient ID is accepted from tool arguments; ownership is resolved from server context on every private operation. Deny by default; use non-enumerating errors for inaccessible private resources.
+Use server-managed sessions with Secure, HttpOnly cookies in hosted environments, appropriate CSRF protection, Origin checks and restrictive CORS. No public staff registration. The patient credential and recovery flow remains pending. No identity/role/patient ID is accepted from tool arguments; ownership is resolved from server context on every private operation. Deny by default; use non-enumerating errors for inaccessible private resources.
 
 | Actor | Access |
 | --- | --- |
-| Guest | Public catalog, general availability, approved public FAQ; guest chat/handoff needs scoped capability decision |
+| Guest | Public catalog, general availability and approved public FAQ; no MVP handoff submission |
 | Patient | Own appointments/conversations and confirmed operations |
 | Receptionist | Assigned-clinic appointment/schedule permissions only |
 | Handoff operator | Assigned-clinic escalations with explicit conversation access |
 | Admin | Assigned-clinic catalog, knowledge approvals, staff permissions and redacted audit |
 
-Admin is not a global bypass. Staff actions reuse the same confirmation and domain validation path. Registration, account recovery, OIDC callback/session verification and demo access controls need decisions before auth implementation.
+Admin is not a global bypass. Staff actions reuse the same confirmation and domain validation path. Patient registration/recovery and demo access controls need decisions before auth implementation. Appointment cancellation and rescheduling have an approved cutoff of 24 hours before start, enforced against current server time.
 
 ## AI and RAG
 
@@ -71,4 +71,4 @@ RAG: approved synthetic local files -> deterministic parse/chunk -> configured e
 
 ## Delivery scope
 
-P0 first; necessary observability starts with the foundation even though FR-13 is P1. Minimal handoff queue is required by P0 FR-08 before demo; broader staff CRUD remains P1. Arabic, mock reminders, MCP and chat-history expansion remain gated. Existing clinic information such as preparation instructions must be reviewed content, not newly generated clinical guidance.
+P0 first; necessary observability starts with the foundation even though FR-13 is P1. Minimal authenticated-patient handoff queue is required by P0 FR-08 before demo; broader staff CRUD remains P1. Arabic and Urdu are post-MVP. Mock reminders, MCP and chat-history expansion remain gated. Minimal synthetic conversation persistence has a proposed 30-day retention period, subject to deletion/exception design. Existing clinic information such as preparation instructions must be reviewed content, not newly generated clinical guidance.

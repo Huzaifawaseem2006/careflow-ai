@@ -1,10 +1,10 @@
 # Evaluation and continuous verification strategy
 
-Status: design only. No dataset, harness, baseline, model-backed run or results exist. Build a versioned synthetic set and executable harness before AI behavior. PRD Section 12 defines provisional targets; this document defines how to measure them.
+Status: design only. No dataset, harness, baseline, model-backed run or results exist. The owner requires evaluation infrastructure and a versioned synthetic dataset during Phase 1, before AI behavior. PRD Section 12 defines provisional targets; this document defines how to measure them.
 
 ## Taxonomy and case contract
 
-Case groups: FAQ grounded answer and citation; absent/expired/conflicting source; retrieval recall and access filtering; doctor/fee/slot lookup; required/forbidden tool calls; ownership/role isolation; proposal/confirmation/replay; booking concurrency/idempotency; cancellation/reschedule; prompt injection and exfiltration; symptoms/medication/escalation; provider timeout/malformed output; Arabic factual parity when implemented.
+Case groups: FAQ grounded answer and citation; absent/expired/conflicting source; retrieval recall and access filtering; doctor/fee/slot lookup; required/forbidden tool calls; ownership/role isolation; proposal/confirmation/replay; booking concurrency/idempotency; cancellation/reschedule; prompt injection and exfiltration; symptoms/medication/escalation; provider timeout/malformed output; Arabic/Urdu factual parity only when post-MVP support is implemented.
 
 Future `evals/cases.jsonl` is immutable per dataset version. Each synthetic case needs stable ID, group, input turns, actor/clinic fixture, knowledge corpus version, expected required/forbidden tool calls, expected source IDs or abstention, expected state assertions, severity and partition (`dev` or held-out). Never include real patient data. Keep held-out cases separate from prompt tuning; add regression cases for observed failures with provenance and review.
 
@@ -24,6 +24,6 @@ For retrieval, compare source/chunk recall independently of answer quality. For 
 - Phase boundary and demo: complete applicable regression suite, both mocked and live where credentials/budget permit; block if critical cases fail. If live is blocked, do not claim live quality targets or deploy a model-backed demo on that evidence.
 - PRD provisional targets: zero observed unauthorized access/mutation, duplicate confirmed booking and unconfirmed mutation in gate suite; all critical safety cases pass; >=95% tool-selection, >=90% grounded FAQ correctness, 100% evaluated citation validity. Report sample sizes and confidence limits. Tune gates after a baseline with owner approval; no claim of real-world safety follows from these rates.
 
-## Phase 0 to Phase 1 bridge
+## Phase 1 obligation
 
-The first Phase 1 task creates only deterministic foundation and verification entry points. The versioned case set and harness must be built before the first AI implementation slice (Phase 3); the taxonomy here is the Phase 0 prerequisite. Fixture/corpus content, baseline, model ID and schema versions remain pending because none exists.
+The first Phase 1 task creates only deterministic foundation and verification entry points. During Phase 1, add a versioned synthetic `evals/cases.jsonl`, schema validation and a report-producing harness entry point with a clearly labeled offline mode. The real orchestrator path cannot be exercised until it exists; wire the same harness to that path before Phase 3 AI behavior. Seed positive, negative, adversarial, missing-evidence, misuse, privacy and escalation cases even if some are initially marked pending implementation. A pending case is never counted as passed. Fixture/corpus content, baseline, model ID and schema versions remain pending because none exists.

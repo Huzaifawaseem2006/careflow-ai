@@ -1,6 +1,6 @@
 # CareFlow AI
 
-Synthetic-data clinic front-desk assistant. Current status: Phase 0 planning; no application, API, database schema, prompts, test harness or deployment exists yet.
+Synthetic-data clinic front-desk assistant. Current status: Phase 0 architecture approved with MVP defaults; Phase 1 implementation awaits explicit approval. No application, API, database schema, prompts, test harness or deployment exists yet.
 
 Read [PRD.md](PRD.md), [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), [progress](docs/PROGRESS.md), [safety](docs/SAFETY.md), [contracts](docs/API_CONTRACTS.md) and [evaluation strategy](docs/EVAL_STRATEGY.md). The owner must approve the plan before Phase 1 begins.
 

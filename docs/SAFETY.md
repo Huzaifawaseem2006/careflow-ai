@@ -27,7 +27,7 @@ Knowledge preparation text may include sensitive health context. Publish only re
 
 ## Privacy and retention
 
-Development fixtures, model prompts, embeddings, logs, evals and demos use synthetic people and clinics. Disclose conversation persistence before opt-in. The PRD has no concrete retention periods or deletion exceptions; decide these before storing chat or handoff content. Staff views and audit events should redact unnecessary content. Limit provider payload to the minimum synthetic context. Prevent raw request bodies, credentials and tokens from entering correlation traces. Deletion needs to cover messages and derived embeddings where applicable, with an explicit audit exception policy.
+Development fixtures, model prompts, embeddings, logs, evals and demos use synthetic people and one fictional Karachi clinic. Disclose conversation persistence before opt-in. The owner proposed 30-day retention for synthetic demo conversations; deletion timing, handoff and audit exceptions still need a concrete policy before storing chat content. Staff views and audit events should redact unnecessary content. Limit provider payload to the minimum synthetic context. Prevent raw request bodies, credentials and tokens from entering correlation traces. Deletion needs to cover messages and derived embeddings where applicable, with an explicit audit exception policy.
 
 ## Release blocks and residual risk
 

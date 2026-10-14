@@ -8,14 +8,14 @@ All request/response bodies are versioned Pydantic v2 models with bounded length
 
 All instants use ISO 8601 with offset; responses include clinic timezone for display. Fee is decimal amount plus ISO currency, never float. Public availability and price are snapshots, not reservations. Mutation response contains persisted appointment ID/state plus correlation ID, or a stable error. Every request is rate/body limited. Auth uses server context; role, patient, clinic and actor IDs are not accepted as authority from JSON or model args.
 
-Proposed explicit confirmation flow: `POST /appointment-proposals` or corresponding cancel/reschedule proposal endpoint returns a short-lived opaque proposal ID and exact review summary. UI displays that summary; a distinct user click submits proposal ID and an idempotency key to the appropriate mutation endpoint. The server checks actor, operation, payload digest, slot/resource state, displayed fee and policy version, expiry and one-time consumption. AI `confirm_*` calls alone never prove a user click. A staff UI needs the same principle for appointment writes. Routine chat-message submission and guest handoff need separate consent rules (D05), not a confirmation for every message.
+Approved explicit confirmation flow: `POST /appointment-proposals` or corresponding cancel/reschedule proposal endpoint returns a short-lived opaque proposal ID and exact review summary. UI displays that summary; a distinct user click submits proposal ID and an idempotency key to the appropriate mutation endpoint. The server checks actor, operation, payload digest, slot/resource state, displayed fee and policy version, expiry and one-time consumption. A changed consultation fee requires a new proposal and confirmation. AI `confirm_*` calls alone never prove a user click. A staff UI needs the same principle for appointment writes. Chat-message submission is not an appointment mutation; handoffs require authenticated patients in the MVP.
 
 ## REST surface
 
 | Route | Actor | Contract invariant |
 | --- | --- | --- |
 | `GET /specialties` | Public | Active clinic catalog only |
-| `GET /doctors` | Public | Filter active, specialty, clinic; location semantics pending D01/D12 |
+| `GET /doctors` | Public | Filter active, specialty and the single Karachi clinic; any finer location filter needs a separate requirement |
 | `GET /doctors/{id}/slots` | Public | Derived available, timezone-aware, bounded date range; never invent |
 | `POST /appointment-proposals` | Patient | Validate owned actor, actual slot and current summary; no booking mutation |
 | `POST /appointments` | Patient | Confirm proposal + idempotency key; atomic booking, persisted ID |
@@ -25,10 +25,10 @@ Proposed explicit confirmation flow: `POST /appointment-proposals` or correspond
 | `POST /appointments/{id}/reschedule-proposal` | Owner or authorized staff | Validate target slot and current appointment; no state change |
 | `POST /appointments/{id}/reschedule` | Owner or authorized staff | Confirm bound proposal; one transaction, old slot preserved on failure |
 | `POST /chat` | Guest or authenticated | Bounded input, scoped conversation access; structured citations/actions |
-| `POST /handoffs` | Pending D05 | Persist queue request with consent/capability; return actual ID/status |
+| `POST /handoffs` | Authenticated patient | Persist owned queue request with consent; return actual ID/status |
 | Staff routes, precise paths TBD | Scoped staff/admin | Clinic assignment and explicit permissions for schedule, documents, escalations and redacted audit |
 
-Proposal paths are additions to the PRD draft required for server-verifiable confirmation. Handoff is listed in PRD as a mutation requiring auth while J5 appears guest-accessible. Resolve D05 before implementing it. Do not expose staff CRUD before its scoped service rules exist.
+Proposal paths are additions to the PRD draft required for server-verifiable confirmation. J5 should be minimally amended to state that handoff requires patient sign-in. Do not expose staff CRUD before its scoped service rules exist. Slot identifiers refer to persisted 30-minute capacity-one slots; cancellation and rescheduling use the approved 24-hour cutoff.
 
 ## Agent tools
 
@@ -46,6 +46,6 @@ Strictly allowlisted, versioned tool schemas with validated inputs and outputs. 
 | `propose_cancellation` | Create bound proposal | Ownership/policy checked |
 | `confirm_cancellation` | Call confirmation service | Same confirmation rule |
 | `propose_reschedule` / `confirm_reschedule` | Proposed additions, D12 | Needed for J4, not in PRD allowlist |
-| `request_handoff` | Queue service | Consent and guest capability pending D05 |
+| `request_handoff` | Queue service | Authenticated patient and consent required |
 
 Do not make confirm tools generally callable from ordinary model output. A confirmed user event is the authority to execute; the orchestrator can describe the resulting operation but cannot manufacture confirmation. No SQL, shell, browser or direct provider-backed data tool is exposed to the model. Tool outputs contain only permitted fields and safe errors.
