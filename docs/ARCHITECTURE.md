@@ -1,0 +1,74 @@
+# Proposed architecture
+
+Status: owner review required. PRD v1.0 is authoritative; this document resolves implementation options provisionally, not by changing requirements. No described module exists yet.
+
+## Minimal structure and boundaries
+
+Future layout: `backend/app/`, `backend/tests/`, `frontend/`, `evals/`, `knowledge/`, `docs/`, `plans/`, and root Compose configuration. Create directories only when their first task needs them.
+
+Next.js patient/staff UI -> same-origin FastAPI REST -> domain services -> SQLAlchemy/PostgreSQL. One explicit OpenAI tool loop calls those same services through typed adapters. pgvector stays in PostgreSQL. No Redis, worker, agent framework, separate vector DB or provider abstraction initially.
+
+Group the PRD logical modules to avoid excessive scaffolding:
+
+| Package | Responsibility |
+| --- | --- |
+| `identity` | Auth, users, patient/staff mappings, clinic assignments |
+| `clinic` | Doctors, specialties, schedules, exceptions, fees, availability |
+| `appointments` | Proposals, confirmation, booking/cancel/reschedule, idempotency |
+| `knowledge` | Approval, ingestion, effective versions, retrieval |
+| `chat` | Conversation ownership, bounded AI loop, tools, safety routing |
+| `handoffs` | Consent, queue, scoped staff resolution |
+| `audit` | Redacted transactional action events |
+
+Routers validate transport inputs; services enforce auth and business rules; persistence code cannot bypass those rules. Tool adapters do not call routers or arbitrary SQL. Cross-module writes run in an explicit shared transaction. Use synchronous SQLAlchemy initially; keep blocking database work off the async model-call event loop. Reassess only with measured need.
+
+## Database sketch: PRD entities plus explicit proposals
+
+UUID keys; timezone-aware instants in UTC; clinic IANA timezone for display and schedule generation; money as fixed precision plus currency. Do not use floats for fees. Foreign keys and resource-scoped indexes are required. DDL and exact field types are a Phase 1/2 review artifact, not approved here.
+
+Retain the PRD users, patients, staff, clinics, specialties, doctors, schedules, exceptions, appointments, knowledge documents/chunks, conversations/messages, handoffs and audit entities. Recommend one seeded clinic while retaining `clinic_id` authorization scope. A staff operator is a permission set rather than implicit access for all staff. Initial patient history is appointments only.
+
+Proposed materialized `slots`: generated deterministically for a bounded horizon from schedules and blocking exceptions. Add a slot duration setting (missing in PRD), unique `(doctor_id, start_at)` and a positive interval check. Fixed, non-overlapping slots are a precondition of this design; schedule edits must never create overlaps or silently move booked appointments. Slots represent capacity; derive booked availability from active appointments rather than duplicating a booking flag. Mark invalidated unbooked slots unavailable. DST gaps/folds require explicit generation policy and tests.
+
+Proposed appointment states: `booked`, `cancelled`; reschedule updates the owned appointment's slot with an audit event. Partial unique index on `slot_id` for `booked` appointments protects capacity; cancelled history remains. Preserve accepted fee/currency snapshot so later catalog edits do not rewrite the confirmed price. These are proposed additions, not existing fields.
+
+Two additional tables are proposed because the PRD sketches do not cover security invariants:
+
+- `action_proposals`: actor, operation, exact normalized payload, resource version, displayed fee/policy version, expiry and consumed state. Store opaque token hashes, not bearer tokens in logs.
+- `idempotency_records`: actor, operation, key, request digest and persisted result reference. Unique actor/operation/key; mismatched payload yields conflict. Appointment-only keys cannot cover cancellation or rescheduling retries.
+
+Cookie sessions may require a sessions table if local identity is selected. Auth schema depends on that decision; do not pretend password hash and OIDC subject are interchangeable.
+
+## Transaction design
+
+Explicit user confirmation reaches a dedicated deterministic backend operation. Lock proposal and relevant appointment/slot rows in a stable order, validate current ownership, clinic scope, policy, fee and availability, then update appointment, consume proposal, persist idempotency result and audit atomically. Return persisted state only after commit. Same-key retry returns the prior result after authentication; changed payload conflicts. Consumed confirmation cannot authorize a fresh action.
+
+For reschedule lock source and target slots in stable order and release old capacity only in the successful transaction. A failed target booking preserves the original appointment. Concurrent schedule changes must take compatible locks and invalidate proposals when their resource version changes. Test using independent PostgreSQL connections; SQLite is insufficient for this claim.
+
+PostgreSQL documents row locks and partial unique indexes; combining them is our proposed design, whose correctness still needs integration tests. [Row locks](https://www.postgresql.org/docs/17/explicit-locking.html), [CREATE INDEX](https://www.postgresql.org/docs/current/sql-createindex.html).
+
+## Identity and authorization
+
+Recommend same-origin HttpOnly cookie sessions, with Secure cookies in hosted environments, CSRF protection, Origin checks and restrictive CORS. Identity provider choice remains pending. No identity/role/patient ID is accepted from tool arguments; ownership is resolved from server context on every private operation. Deny by default; use non-enumerating errors for inaccessible private resources.
+
+| Actor | Access |
+| --- | --- |
+| Guest | Public catalog, general availability, approved public FAQ; guest chat/handoff needs scoped capability decision |
+| Patient | Own appointments/conversations and confirmed operations |
+| Receptionist | Assigned-clinic appointment/schedule permissions only |
+| Handoff operator | Assigned-clinic escalations with explicit conversation access |
+| Admin | Assigned-clinic catalog, knowledge approvals, staff permissions and redacted audit |
+
+Admin is not a global bypass. Staff actions reuse the same confirmation and domain validation path. Registration, account recovery, OIDC callback/session verification and demo access controls need decisions before auth implementation.
+
+## AI and RAG
+
+Authenticate/resolve conversation -> enforce limits -> safety routing -> expose only permitted tool schemas -> explicit bounded model/tool loop -> validate tool inputs and outputs -> structured response with text, citations and typed action summaries. Model/provider failure cannot count as confirmed success. Model and tool-call budgets, timeout and bounded retry rules are configured and tested. Never retry a mutation with a new key after an ambiguous timeout.
+
+Use strict tool schemas with `additionalProperties: false`, all properties required and nullable values for optional arguments where needed. This constrains shape, not authorization or business validity. Server validation remains mandatory. Provider model and API choice stay pending capability/budget verification. [Official function-calling guide](https://developers.openai.com/api/docs/guides/function-calling). Pydantic strict validation has input-mode differences; test JSON and Python boundaries rather than claiming all coercion disappears. [Strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
+
+RAG: approved synthetic local files -> deterministic parse/chunk -> configured embeddings -> versioned pgvector index. Filter by clinic, approval, effective interval and access class before similarity search. Fixed fixtures establish relevance thresholds/top-k; neither numbers nor embedding dimension are invented here. Conflicting or missing evidence causes abstention/handoff. Cite document/version/chunk identifiers and a safe backend source link. Recheck effective approval at answer assembly so withdrawn sources cannot silently remain valid. Pricing in booking comes from authoritative services, not RAG. Retrieval content is untrusted data, never instructions. No internet fetching or arbitrary uploaded URLs in MVP.
+
+## Delivery scope
+
+P0 first; necessary observability starts with the foundation even though FR-13 is P1. Minimal handoff queue is required by P0 FR-08 before demo; broader staff CRUD remains P1. Arabic, mock reminders, MCP and chat-history expansion remain gated. Existing clinic information such as preparation instructions must be reviewed content, not newly generated clinical guidance.
