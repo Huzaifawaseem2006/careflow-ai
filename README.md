@@ -1,8 +1,8 @@
 # CareFlow AI
 
-Synthetic-data clinic front-desk assistant. Phase 1 ticket 01 adds a process-liveness API. The database, authentication, clinic workflows, AI behavior, frontend, and evaluation harness are future tickets.
+Synthetic-data clinic front-desk assistant. Phase 1 includes verified process liveness and PostgreSQL migration/readiness infrastructure. Authentication, clinic workflows, AI behavior, frontend and evaluation infrastructure remain future tickets.
 
-Follow [AGENTS.md](AGENTS.md) for development workflow and scoped context loading. Project references: [PRD.md](PRD.md), [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), [progress](docs/PROGRESS.md), [safety](docs/SAFETY.md), [contracts](docs/API_CONTRACTS.md) and [evaluation strategy](docs/EVAL_STRATEGY.md). Phase 1 tickets 01 and 02 are complete; later tickets need separate implementation approval.
+Follow [AGENTS.md](AGENTS.md) for development workflow and scoped context loading. Project references: [PRD.md](PRD.md), [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), [progress](docs/PROGRESS.md), [safety](docs/SAFETY.md), [contracts](docs/API_CONTRACTS.md) and [evaluation strategy](docs/EVAL_STRATEGY.md). Phase 1 tickets 01–03 are complete; Tickets 04–07 need separate implementation approval.
 
 The phase plans under `plans/` follow PRD phases 0–7. See progress for actual verification evidence.
 
@@ -33,3 +33,90 @@ Ticket 02 adds [GitHub Actions](.github/workflows/foundation.yml) on pushes, pul
 The entry point runs the four checks above, returns nonzero if any fail, and writes `test-results/foundation.json` with the checked-out Git revision, working-tree dirty flag, overall result and each check's exit code. It also prints the report; GitHub Actions copies it to the job summary even when checks fail. Run from a Git checkout at the repository root. An uncommitted local result is identified by `dirty: true`, not proof of a clean committed revision.
 
 The subprocess regression suite runs separately to avoid recursive pytest execution. It invokes the real checks, briefly creates an unused-import probe under `backend/`, and removes it in `finally`. Run this suite serially in an otherwise idle checkout. Each test writes its report to pytest's temporary directory. No model calls or credentials are needed. The private GitHub remote is connected; [baseline hosted run #1 passed](https://github.com/Huzaifawaseem2006/careflow-ai/actions/runs/38693825109), and [isolated failure-proof run #2 failed as intended](https://github.com/Huzaifawaseem2006/careflow-ai/actions/runs/38694227925). Ticket 02 is resolved; its ticket records both commit SHAs and verification details. The failure-proof branch must not be merged into `master`.
+
+## Local PostgreSQL setup (Ticket 03)
+
+The current MVP runs natively. Docker/Compose is deferred and is not required. Python dependencies are pinned to SQLAlchemy 2.0.54, Alembic 1.20.0 and Psycopg/binary 3.3.6; install using the existing `pip install -e '.[dev]'` command. PostgreSQL 17.11 and pgvector 0.8.7 are installed and verified through authenticated SQL, migrations, vector operations and real-database HTTP readiness tests. The existing `careflow_ai` database is at revision `0001_vector`. PostgreSQL 18 is not required. Installation steps below are for fresh machines; do not reinstall on this machine.
+
+1. Keep the existing PostgreSQL 17.11 installation; no reinstall or major-version upgrade is needed. For a fresh machine, use the [official Windows download page](https://www.postgresql.org/download/windows/). Include server/command-line tools and keep the administrator password private. Examples assume `C:\Program Files\PostgreSQL\17` and port 5432.
+2. Build pgvector from its official pinned source against this installation, following the [official Windows instructions](https://github.com/pgvector/pgvector#windows). Visual Studio 2022 Community with the C++ tools component is already detected here; PostgreSQL's `include\server\postgres.h` and `lib\postgres.lib` also exist. On a fresh machine, install the **Desktop development with C++** workload and Windows SDK using [Microsoft's instructions](https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line). Open **x64 Native Tools Command Prompt for VS 2022** as administrator (not ordinary PowerShell). Using a fresh source directory, run:
+
+```bat
+set "PGROOT=C:\Program Files\PostgreSQL\17"
+cd %TEMP%
+git clone --branch v0.8.7 --depth 1 https://github.com/pgvector/pgvector.git careflow-pgvector-0.8.7-pg17
+cd careflow-pgvector-0.8.7-pg17
+nmake /F Makefile.win
+nmake /F Makefile.win install
+```
+
+Stop if a command fails. If the source directory already exists, choose another fresh directory to avoid reusing build objects from another PostgreSQL version. `PGROOT` selects the installed PostgreSQL 17 headers/libraries and destination; do not copy a PostgreSQL 18 DLL into this server. The install target copies `vector.dll` to `17\lib` and `vector.control`/versioned SQL files to `17\share\extension`.
+
+These are owner-run installation instructions; the agent has not installed system software. Zero rows from `pg_available_extensions` means pgvector's installation files are unavailable to the queried server; SQL alone cannot install missing files. Installing the files makes the extension available; Alembic enables it per database. Re-run the query in pgAdmin against the same server, or in PowerShell (password is prompted):
+
+```powershell
+& 'C:\Program Files\PostgreSQL\17\bin\psql.exe' --version
+& 'C:\Program Files\PostgreSQL\17\bin\psql.exe' -h 127.0.0.1 -U postgres -d postgres -W -c "SELECT name, default_version FROM pg_available_extensions WHERE name = 'vector';"
+& 'C:\Program Files\PostgreSQL\17\bin\createdb.exe' -h 127.0.0.1 -U postgres -W careflow_ai
+```
+
+The extension query must return a row. The owner has already created `careflow_ai`; skip the `createdb` command on this machine. On a fresh setup, create it once; do not recreate/reset an existing database. No domain tables or fixtures are added by Ticket 03.
+
+If availability still returns zero rows after a successful install, verify pgAdmin's host/port and `SELECT version();`, and compare the installation's `pg_config.exe --sharedir` with the directory containing `vector.control`. Multiple PostgreSQL installations can use different extension directories. Keep the migration's extension requirement intact; do not stamp Alembic head or bypass extension creation.
+
+From the repository root, set the migration connection in the process environment, prompting for the password without putting it in shell history:
+
+```powershell
+$taskDatabasePassword = [uri]::EscapeDataString((Get-Credential -UserName postgres -Message 'Local migration administrator').GetNetworkCredential().Password)
+$env:DATABASE_URL = "postgresql+psycopg://postgres:${taskDatabasePassword}@127.0.0.1:5432/careflow_ai"
+Remove-Variable taskDatabasePassword
+.venv\Scripts\python -m alembic upgrade head
+.venv\Scripts\python -m alembic upgrade head
+.venv\Scripts\python -m alembic current
+```
+
+Expected revision: `0001_vector`. Migrations require permission to install extensions (normally the local administrator for this extension). Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
+
+```sql
+CREATE ROLE careflow_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+\password careflow_app
+GRANT CONNECT ON DATABASE careflow_ai TO careflow_app;
+GRANT USAGE ON SCHEMA public TO careflow_app;
+GRANT SELECT ON TABLE public.alembic_version TO careflow_app;
+```
+
+Set `DATABASE_URL` for the API using the same password-prompt pattern with `careflow_app` as the username. Future domain tickets must add only their required application permissions. `.env.example` documents the variables, but `.env` is **not auto-loaded**. Use `postgresql+psycopg` URLs, percent-encode special characters in usernames/passwords, and omit URL query parameters; the application sets connect and statement timeouts. Never print the environment URL or commit credentials.
+
+```powershell
+.venv\Scripts\python -m uvicorn careflow.main:app --host 127.0.0.1 --port 8000
+```
+
+`GET /ready` returns HTTP 200 / `{"status":"ok"}` when connectivity, migration head and vector installation checks succeed; otherwise HTTP 503 / `{"status":"unavailable"}`. It never migrates or returns database details. `GET /health` stays HTTP 200 even when the database is unavailable. For SQL review without a server, run `.venv\Scripts\python -m alembic upgrade head --sql`; this does **not** prove a live migration succeeded.
+
+## Real database verification
+
+Use a local maintenance connection with CREATEDB and extension-install privileges. The suite creates fresh `careflow_test_<random UUID>` databases from `template0` and drops only those databases after each test; it never resets `careflow_ai` or the maintenance database. Use synthetic data only. Set the maintenance URL using the password prompt above, then run:
+
+```powershell
+$env:TEST_DATABASE_URL = $env:DATABASE_URL
+.venv\Scripts\python -m pytest backend/integration_tests -v -s -rs
+```
+
+Set `TEST_DATABASE_URL` while `DATABASE_URL` still refers to the **administrator connection**, preferably to database `postgres`, before switching to the application role. The fixture uses its own disposable database connection for each test. No external host is accepted. Do not expose the URL in test reports or logs. Four tests cover fresh/repeated migration, vector distance, readiness with missing schema/extension or stale revision, and independent liveness. The successful migration test prints actual PostgreSQL/pgvector versions. The regular backend suite also checks unavailable/invalid configuration with safe error bodies. Without `TEST_DATABASE_URL`, all four integration tests explicitly skip; skips do not satisfy Ticket 03. With a configured but unusable server, setup fails rather than skipping.
+
+Before pgvector installation, you can run the PostgreSQL-only check after configuring `TEST_DATABASE_URL`:
+
+```powershell
+.venv\Scripts\python -m pytest backend/integration_tests/test_database_integration.py::test_unmigrated_database_is_not_ready_but_process_is_alive -v -s -rs
+```
+
+It confirms SQL connectivity to a fresh database, no migration version table, `/ready` HTTP 503 and `/health` HTTP 200. It does not enable or require pgvector. The complete four-test suite must still pass after extension installation. Credentials must be configured locally; a pgAdmin connection does not configure the API/test process, and no password should be pasted into chat.
+
+Run `.venv\Scripts\python scripts/check_foundation.py` and `.venv\Scripts\python -m pytest ci_tests -q` serially for local foundation verification. Hosted CI currently runs those checks and the offline/unit suite only; it does not claim live database coverage. Ticket 03 closeout passed 15 local tests (9 offline/unit, 4 real PostgreSQL, 2 CI regressions), with no skips. Fresh/repeat migration, vector distance, successful/unmigrated/missing-extension/stale-revision readiness and database-independent liveness are verified. Evidence and remaining phase work are recorded in progress.
+
+If the restricted Windows execution environment blocks pytest temporary directories with WinError 5, run from an ordinary local PowerShell session. Use a fresh ignored workspace directory for test temporaries and keep the CI regression suite serial. For example, after setting the environment URLs:
+
+```powershell
+$taskTestTemp = Join-Path (Get-Location).Path ('test-results\pytest-' + [guid]::NewGuid().ToString('N'))
+.venv\Scripts\python -m pytest backend/tests backend/integration_tests ci_tests -q -rs --basetemp $taskTestTemp
+```

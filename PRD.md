@@ -56,7 +56,7 @@ English first, Arabic second phase; right-to-left UI and tests for faithful fact
 - PostgreSQL for relational data; pgvector for document embeddings; SQLAlchemy 2.x and Alembic for persistence/migrations.
 - Pydantic for strict request, response and tool schemas; pytest, HTTPX and database integration tests.
 - OpenAI SDK with configurable model, strict structured tool schemas and explicit tool execution loop. Provider abstraction only if needed; avoid framework overhead at MVP.
-- Docker Compose for local FastAPI, Next.js and PostgreSQL. Redis/worker only when background ingestion or reminders justify it.
+- Run FastAPI, Next.js and PostgreSQL locally without containers for the MVP (owner-approved amendment, 2026-10-15). Docker/Compose deployment is deferred and does not block development. Redis/worker only when background ingestion or reminders justify it.
 - No microservices, multiple agents, unrestricted SQL or separate vector database at MVP.
 
 ### Logical modules
@@ -117,7 +117,7 @@ These are project quality targets, not a guarantee of real-world medical safety.
 4. RAG: ingestion, retrieval, citations, abstention and injection defense; retrieval and grounded-answer evals.
 5. Frontend: patient chat, booking flow, staff dashboard; end-to-end tests.
 6. Hardening: security review, safety evals, Arabic optional, accessibility, performance, failure handling.
-7. Portfolio release: synthetic demo, Docker setup, README, architecture diagram, trace/eval report, walkthrough and limitations.
+7. Portfolio release: synthetic demo, native local setup, README, architecture diagram, trace/eval report, walkthrough and limitations. Docker setup is deferred beyond the current MVP.
 At every phase: update `docs/PROGRESS.md` and `docs/DECISIONS.md`, report evidence and unresolved risks, commit a reviewable change.
 
 ## 14. Success criteria

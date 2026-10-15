@@ -1,10 +1,10 @@
 # Proposed architecture
 
-Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. Only the FastAPI process-liveness slice is implemented; the domain modules below remain planned. Detailed schema/API choices still require task-level review. PRD v1.0 remains authoritative and unchanged.
+Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. FastAPI liveness, database configuration, readiness and initial Alembic migration are implemented and verified with local PostgreSQL 17.11 / pgvector 0.8.7. Domain modules below remain planned. Detailed schema/API choices still require task-level review. PRD remains authoritative, with the owner-approved Docker-free amendment dated 2026-10-15.
 
 ## Minimal structure and boundaries
 
-The existing Python package is `backend/careflow/`, with tests in `backend/tests/`. Future additions: `frontend/`, `evals/`, `knowledge/` and root Compose configuration; `docs/` and `plans/` already exist. Create directories only when their first task needs them.
+The existing Python package is `backend/careflow/`, with tests in `backend/tests/`, opt-in real PostgreSQL tests in `backend/integration_tests/`, and Alembic scripts in `backend/migrations/`. Future additions: `frontend/`, `evals/` and `knowledge/`; `docs/` and `plans/` already exist. Run services and PostgreSQL natively for the MVP. Docker/Compose is deferred and is not a development prerequisite. Create directories only when their first task needs them.
 
 Next.js patient/staff UI -> same-origin FastAPI REST -> domain services -> SQLAlchemy/PostgreSQL. One explicit OpenAI tool loop calls those same services through typed adapters. pgvector stays in PostgreSQL. No Redis, worker, agent framework, separate vector DB or provider abstraction initially.
 
@@ -21,6 +21,8 @@ Group the PRD logical modules to avoid excessive scaffolding:
 | `audit` | Redacted transactional action events |
 
 Routers validate transport inputs; services enforce auth and business rules; persistence code cannot bypass those rules. Tool adapters do not call routers or arbitrary SQL. Cross-module writes run in an explicit shared transaction. Use synchronous SQLAlchemy initially; keep blocking database work off the async model-call event loop. Reassess only with measured need.
+
+Ticket 03 uses a process-environment `DATABASE_URL` with the `postgresql+psycopg` driver, bounded connect/statement timeouts and disposable connections. `GET /ready` verifies the expected Alembic revision and installed vector extension; it does not mutate or migrate. `GET /health` remains independent process liveness. Apply migrations explicitly with an operator role able to install the extension; application readiness only reads. The first migration enables `vector` in `public`, without domain tables or embedding dimensions. Database failure responses and Alembic connection failures omit driver exception details and credentials.
 
 ## Database sketch: PRD entities plus explicit proposals
 

@@ -1,6 +1,6 @@
 # Proposed API and tool contracts
 
-Status: planning sketch except for the implemented `GET /health` liveness route below. No other endpoint or tool is implemented. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
+Status: planning sketch except for the implemented `GET /health` liveness and `GET /ready` database readiness routes below. No other endpoint or tool is implemented. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
 
 ## Common rules
 
@@ -15,6 +15,7 @@ Approved explicit confirmation flow: `POST /appointment-proposals` or correspond
 | Route | Actor | Contract invariant |
 | --- | --- | --- |
 | `GET /health` | Public | Implemented: HTTP 200 with `{"status":"ok"}`; process liveness only, no database readiness or sensitive details |
+| `GET /ready` | Public | Implemented: HTTP 200 with `{"status":"ok"}` only when PostgreSQL is reachable, the expected Alembic revision is applied and `vector` is installed; otherwise HTTP 503 with `{"status":"unavailable"}`. No credentials or dependency details; `Cache-Control: no-store`. Verified against PostgreSQL 17.11 / pgvector 0.8.7. |
 | `GET /specialties` | Public | Active clinic catalog only |
 | `GET /doctors` | Public | Filter active, specialty and the single Karachi clinic; any finer location filter needs a separate requirement |
 | `GET /doctors/{id}/slots` | Public | Derived available, timezone-aware, bounded date range; never invent |
