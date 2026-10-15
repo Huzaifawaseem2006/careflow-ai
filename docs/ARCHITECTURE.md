@@ -1,10 +1,10 @@
 # Proposed architecture
 
-Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. Detailed schema/API choices still require task-level review. PRD v1.0 remains authoritative and unchanged. No described module exists yet.
+Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. Only the FastAPI process-liveness slice is implemented; the domain modules below remain planned. Detailed schema/API choices still require task-level review. PRD v1.0 remains authoritative and unchanged.
 
 ## Minimal structure and boundaries
 
-Future layout: `backend/app/`, `backend/tests/`, `frontend/`, `evals/`, `knowledge/`, `docs/`, `plans/`, and root Compose configuration. Create directories only when their first task needs them.
+The existing Python package is `backend/careflow/`, with tests in `backend/tests/`. Future additions: `frontend/`, `evals/`, `knowledge/` and root Compose configuration; `docs/` and `plans/` already exist. Create directories only when their first task needs them.
 
 Next.js patient/staff UI -> same-origin FastAPI REST -> domain services -> SQLAlchemy/PostgreSQL. One explicit OpenAI tool loop calls those same services through typed adapters. pgvector stays in PostgreSQL. No Redis, worker, agent framework, separate vector DB or provider abstraction initially.
 

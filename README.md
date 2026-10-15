@@ -2,7 +2,7 @@
 
 Synthetic-data clinic front-desk assistant. Phase 1 ticket 01 adds a process-liveness API. The database, authentication, clinic workflows, AI behavior, frontend, and evaluation harness are future tickets.
 
-Read [PRD.md](PRD.md), [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), [progress](docs/PROGRESS.md), [safety](docs/SAFETY.md), [contracts](docs/API_CONTRACTS.md) and [evaluation strategy](docs/EVAL_STRATEGY.md). Phase 1 tickets 01 and 02 are approved; later tickets need separate implementation approval.
+Follow [AGENTS.md](AGENTS.md) for development workflow and scoped context loading. Project references: [PRD.md](PRD.md), [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), [progress](docs/PROGRESS.md), [safety](docs/SAFETY.md), [contracts](docs/API_CONTRACTS.md) and [evaluation strategy](docs/EVAL_STRATEGY.md). Phase 1 tickets 01 and 02 are complete; later tickets need separate implementation approval.
 
 The phase plans under `plans/` follow PRD phases 0–7. See progress for actual verification evidence.
 

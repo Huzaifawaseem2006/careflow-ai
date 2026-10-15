@@ -1,6 +1,6 @@
 # Decisions and PRD review
 
-2026-10-14. Status labels: **approved** = explicitly chosen by owner; **proposed** = needs review; **open** = no selection. The owner approved the Phase 0 architecture with the MVP defaults below. Phase 1 implementation still requires separate explicit approval.
+2026-10-14. Status labels: **approved** = explicitly chosen by owner; **proposed** = needs review; **open** = no selection. The owner approved the Phase 0 architecture with the MVP defaults below. Implementation tickets require individual approval; see progress for completed work.
 
 ## Approved MVP decisions
 
@@ -13,7 +13,7 @@
 - Minimal conversation persistence with a **proposed** 30-day synthetic demo retention period; duration and deletion exceptions remain for final approval.
 - Configurable OpenAI model and evaluation budget; local Docker Compose deployment first. No clinical diagnosis, prescribing or definitive triage.
 - Establish evaluation infrastructure and a versioned synthetic dataset during Phase 1, before AI behavior. Deterministic security assertions; mocked and live runs labeled separately.
-- `PRD.md` is authoritative and remains byte-for-byte unchanged. The owner's nine original `AGENTS.md` instructions are preserved; an `Agent skills` block was later appended with explicit owner approval for local issue tracking, triage and domain-doc pointers.
+- `PRD.md` is authoritative and remains byte-for-byte unchanged. `AGENTS.md` carries the owner's current workflow and safety rules, including the approved accelerated workflow below; local issue tracking, triage and domain-doc pointers remain in place.
 
 ## Approval register
 
@@ -32,7 +32,7 @@
 | D11 | Clinical wording review | Owner names appropriate reviewer and approves locale-specific escalation text before demo; no clinical validation claim. | Safety eval/release |
 | D12 | Schema additions and API changes | Proposals/idempotency tables, fee snapshot, session storage as applicable; reschedule tools/proposal endpoints described in contracts. | Schema/API implementation |
 
-Explicit Phase 1 approval blocks the first health-check slice. Remaining decisions block only dependent tasks. Do not ask every open question before making unrelated progress.
+Tickets 01–02 were individually approved and are complete. Remaining decisions block only dependent tasks; resolve only the decisions needed for the approved ticket.
 
 ## Contradictions, gaps and risks
 
@@ -81,3 +81,15 @@ Owner selected a new private `careflow-ai` repository under their authenticated 
 The owner subsequently approved the baseline commit, private repository creation and initial push. Authenticated ownership and Private visibility were verified; `origin` now points to `https://github.com/Huzaifawaseem2006/careflow-ai.git`. Retained the existing `master` branch. Baseline `af00055` has an actual successful hosted run. The deliberate failure branch and final closeout commit have separate approval boundaries; baseline approval does not authorize either commit.
 
 The owner separately approved the failure-probe commit/push. Commit `a59f3fe` on `codex/ci-failure-proof` has an actual failed hosted run caused by the deliberate Ruff F401 violation; retain that branch only as evidence and never merge it. Returned to `master`, which still points to passing baseline `af00055` and contains no probe. Both hosted outcomes are verified, so ticket 02 is resolved. Final documentation commit/push requires its own approval; ticket 03 remains outside this session's scope.
+
+## Accelerated ticket workflow — approved 2026-10-15
+
+The owner set a two-day functional MVP target and adopted one implementation ticket per session, normally followed by a fresh session. `AGENTS.md` is the authoritative workflow: scoped context reads, ordinary technical autonomy under one ticket approval, risk-based TDD/testing, milestone CI and concise end-of-ticket documentation. This supersedes the earlier unconditional full-PRD read and documentation-after-each-meaningful-edit rules. It preserves PRD/architecture/acceptance criteria, critical security and clinical boundaries, applicable tests/evals and phase/release gates. The schedule is a target, not a completion guarantee or permission to reduce scope.
+
+Review found avoidable overhead in repeated context loads, intermediate documentation, repeated routine approvals and unnecessary broad skill reviews. Installed guidance was inspected without invoking its implementation/review/handoff workflows: `implement` encourages TDD, invokes `code-review` and instructs a commit; `tdd` requires an agreed test boundary once invoked; `code-review` uses a fixed comparison point and two reviewers; `handoff` avoids duplicating existing artifacts; setup guidance already configures our local tracker. Use these selectively and follow invoked instructions subject to owner rules; a skill's commit step never grants commit approval. Applied `writing-for-agents` to consolidate rules and use scoped references. No installed skill was modified.
+
+Trade-off: focused tests and fewer process steps improve delivery speed, while high-risk logic retains strict TDD and necessary security/integration coverage. Existing automatic CI triggers remain unchanged; the deliberate failure experiment used to validate ticket 02 is not a recurring ticket requirement.
+
+### Proposed routine commit/push policy — NOT APPROVED
+
+If separately approved, a ticket implementation approval would also authorize at most one final commit and ordinary push for that ticket, after its acceptance criteria and applicable checks pass (or are explicitly inapplicable), the scoped diff is reviewed and shown, and secrets/sensitive data are excluded. Include only that ticket's changes and handoff docs; push only to a `codex/<ticket>` branch on the existing private `origin`, creating the branch if needed. Report the resulting SHA and actual CI outcome. This would not authorize direct `master` pushes, merges, force-pushes/history rewrites, unrelated files, extra commits, remote/visibility/access changes, release/deployment or destructive operations. Pause for approval when these bounds cannot be met or required checks are failed/blocked. Until the owner explicitly approves this policy, retain explicit approval before every commit and push, including this workflow update.
