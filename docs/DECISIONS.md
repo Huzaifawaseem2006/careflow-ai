@@ -61,3 +61,19 @@ Options if later requested: provide a specific repository/version for read-only 
 ## Source checks
 
 Official OpenAI function-calling, Pydantic strict-mode and PostgreSQL locking/index pages were opened on 2026-10-14; links and limited implications are in ARCHITECTURE.md. No package version or model capability has been selected by this check. Reverify relevant APIs against pinned versions when implementing.
+
+## Session handoff workflow — approved 2026-10-14
+
+The owner requires repository documents to carry verified state between sessions. `AGENTS.md` now directs agents to inspect the checkout and scoped documentation at task start, update progress/decisions/phase plans after meaningful work, and report a concise evidence-based handoff. This keeps the next session independent of full chat history. Documentation changes are shown before commit, and every Git commit requires explicit owner approval. Trade-off: documentation takes a small amount of upkeep; keep entries short and update other design documents only when their subject actually changes. This process decision does not authorize Phase 1 implementation.
+
+## Phase 1 health baseline — 2026-10-15
+
+For the approved first ticket, use Python 3.13.13, a small editable FastAPI package and exact direct runtime/development dependency pins in project metadata. `GET /health` returns only process liveness through a Pydantic response model; database readiness gets a separate later contract. This keeps the first slice independently verifiable and avoids implying a database exists. A full transitive lockfile is not yet present, so future resolutions may select newer compatible transitive packages. The installed Starlette version emits a deprecation warning for its HTTPX-backed test client; the test passes, and the warning remains tracked rather than treated as a failure or silently suppressed.
+
+## Foundation CI — approved 2026-10-15
+
+The owner approved ticket 02, GitHub Actions and tests through the actual check command's subprocess boundary without mocks. Use a standard-library Python entry point shared by local runs and CI; record Git HEAD, working-tree dirtiness and check exit codes in JSON. The separate CI regression suite prevents recursive test execution and exercises a temporary real lint violation. Trade-off: it must run serially in an idle checkout, and its report describes foundation checks rather than the regression suite's own result (pytest reports that separately). The workflow needs only read access to contents, disables persisted checkout credentials, and uses no project secrets. Major action tags follow official action documentation; they are not immutable SHA pins. No CI host was connected, no hosted execution is claimed, and no new package dependency was needed. A clean committed baseline and transitive dependency locking remain later work.
+
+Sources checked: [GitHub Python workflow guide](https://docs.github.com/en/actions/tutorials/build-and-test-code/python), [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), [setup-python](https://github.com/actions/setup-python), and [checkout](https://github.com/actions/checkout). Configuration review does not establish that a hosted run passes.
+
+Owner selected a new private `careflow-ai` repository under their authenticated personal account on 2026-10-15; the provided profile is `Huzaifawaseem2006`. Keep it empty at creation because source and documentation already exist locally. Verify the account at sign-in; creation, commits and pushes each require explicit approval. Hosted failure evidence will use a separate branch with a deliberate lint violation; keep the passing branch free of the probe. This confines the experiment to CI verification and does not authorize ticket 03.
