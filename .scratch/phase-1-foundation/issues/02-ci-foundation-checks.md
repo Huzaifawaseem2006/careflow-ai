@@ -2,46 +2,48 @@
 
 **What to build:** A reviewer can see a repeatable CI result for the same formatting, lint, type, and test checks used locally. Failed checks fail the job.
 
-**Blocked by:** 01 — Start the API and verify its health.
+**Blocked by:** 01 — Start the API and verify its health (resolved).
 
-**Status:** needs-info
+**Status:** resolved
 
-**Approval gate:** Explicit owner approval to begin Phase 1 implementation. Select a CI runner or repository host before claiming a hosted CI pass.
-
-Owner approved ticket 02, the subprocess test boundary and GitHub Actions on 2026-10-15. Local implementation is verified; status remains `needs-info` pending a connected remote and hosted job evidence. No commit or remote creation is authorized.
+**Approval gate:** Owner approved ticket 02, the real-subprocess TDD boundary and GitHub Actions. The baseline commit/private repository/push and the failure-probe commit/push were separately approved. Any closeout commit still requires explicit approval.
 
 - [x] CI configuration invokes the documented checks without secrets in logs.
-- [ ] A failing check produces a failing job; a passing run records its revision and result.
+- [x] A failing check produces a failing job; a passing run records its revision and result.
 - [x] The same commands pass locally; any unavailable hosted runner is reported as blocked rather than passed.
 
-## Verification — 2026-10-15
+## Implementation
 
-- **Red:** `.venv\Scripts\python -m pytest ci_tests/test_foundation_checks.py -q` failed because the entry point did not exist. After the minimal passing implementation, 1 test passed.
-- **Red:** `.venv\Scripts\python -m pytest ci_tests/test_foundation_checks.py::test_real_lint_failure_returns_nonzero_and_records_failure -q` caught a stale passing report after a real Ruff F401 failure.
-- **Green:** after collecting check return codes and writing a fresh failure report, `.venv\Scripts\python -m pytest ci_tests/test_foundation_checks.py -q` passed both tests. A formatting issue in the new argument declaration was corrected with `.venv\Scripts\python -m ruff format scripts ci_tests` before the final green run.
-- **Passed locally:** `.venv\Scripts\python scripts/check_foundation.py` ran format, lint, mypy and the backend test. Report records HEAD `be3c5b9becf243d677b4c8a3d58dcda933e4d195`, `dirty: true`, overall pass and four zero exit codes. This is uncommitted working-tree evidence.
-- **Partial criterion 2:** real failure propagation and revision/result reporting are verified locally; workflow uses normal failing-step behavior without `continue-on-error`. Actual passing/failing GitHub jobs are **blocked**, since no remote is connected. Do not mark this ticket resolved until hosted evidence verifies the remaining criterion.
-- **Warnings:** existing Starlette test-client deprecation; an intermittent Windows pytest-cache access warning. Both are visible and unsuppressed.
-- **Skipped:** AI evaluations (no AI path changed). Workflow syntax was reviewed against official GitHub documentation; no automated workflow linter is installed and no hosted syntax validation ran.
+- `.github/workflows/foundation.yml`: push/PR/manual triggers; Python from `.python-version`; existing pinned dependencies; CI regression suite followed by shared checks; foundation JSON in the job summary.
+- `scripts/check_foundation.py`: real format/lint/mypy/backend pytest subprocesses; nonzero exit on any failure; revision, dirty flag and per-check exit codes in JSON.
+- `ci_tests/test_foundation_checks.py`: real passing and injected-lint-failure paths, separate temporary reports, no mocked command execution. Runs separately to prevent recursive pytest invocation.
+- README documents the exact local commands and serial execution requirement. No product/API behavior changed.
 
-## Files and next step
+## Verified acceptance evidence — 2026-10-15
 
-Added `.github/workflows/foundation.yml`, `scripts/check_foundation.py` and `ci_tests/test_foundation_checks.py`; updated README, this ticket, progress, decisions and the Phase 1 plan. No product behavior or API contract changed. Review the changes, then separately authorize a commit/remote setup if desired. Run the workflow after connecting the repository; capture both passing and deliberately failing job evidence before closing this ticket.
+| Evidence | Revision | Actual result |
+| --- | --- | --- |
+| [Hosted baseline run #1](https://github.com/Huzaifawaseem2006/careflow-ai/actions/runs/38693825109) | `af00055cdcce24c561e8f8dc254973fd849fdd99` | Success; 2 CI tests and 1 backend test passed; report `dirty: false`, overall passed, four zero exit codes |
+| [Hosted failure run #2](https://github.com/Huzaifawaseem2006/careflow-ai/actions/runs/38694227925) | `a59f3feafbba377c15d219d751ad0750f7473358` | Failure; real Ruff F401 in `backend/ci_failure_probe.py`; CI regression step had 1 failed/1 passed and exited 1; job failed |
 
-## Closeout review — awaiting owner approvals and GitHub sign-in
+GitHub job metadata and actual logs were retrieved through the existing credential helper without printing/storing its credential. The initial browser log-expansion failure was resolved by reading the authenticated Actions API. The failure run stopped at `Verify CI command behavior`; the later `Run foundation checks` step was correctly skipped. No standalone foundation summary is claimed for that failed run.
 
-Reviewed the workflow, check entry point, subprocess tests, dependency configuration and related documentation against all three acceptance criteria. No blocking local implementation defect was found. Repeated `.venv\Scripts\python -m pytest ci_tests -q` (2 passed), `.venv\Scripts\python scripts/check_foundation.py` (all four checks passed; 1 backend test), and `git diff --check` (passed). The two known warnings remain visible.
+Final local verification on `master`:
 
-The owner selected a new private `careflow-ai` repository under their authenticated personal GitHub account (provided profile: `Huzaifawaseem2006`), with no generated README, license or gitignore. Repository creation, Git commits and pushes still require explicit approval. The available in-app browser is signed out, so account ownership is not yet verified. GitHub CLI is not installed. No remote has been added.
+```powershell
+.venv\Scripts\python -m pytest ci_tests -q
+.venv\Scripts\python scripts/check_foundation.py
+git diff --check
+```
 
-Before upload, a local pattern scan covered 36 candidate source/document files and 61 reachable historical Git blobs. No matching token/private-key/credential-assignment patterns or sensitive candidate filenames were found. No `.env`, credential file, virtual environment, cache or test-result artifact is in the proposed upload. This is a bounded scan, not a guarantee that automated detection finds every secret or sensitive datum. The exact 24-file pending-change manifest and complete working-tree review patch (including untracked code) are available as ignored review artifacts under `test-results/`.
+Results: 2 CI tests passed; formatting/lint/types passed (5 source files); backend pytest 1 passed. Starlette test-client deprecation and intermittent Windows pytest-cache warnings remain visible. The local report is marked dirty because closeout documentation is uncommitted; the hosted baseline supplies clean-revision evidence.
 
-Remaining closeout sequence:
+TDD history: first test failed for the missing entry point, then passed after implementation. The next failing test caught a stale passing report after a real lint failure. Corrected result recording and report isolation, formatted the new code, and verified both tests passed. Reviewed the resulting implementation; no further refactoring was necessary.
 
-1. Owner signs into GitHub; verify the authenticated account and empty private repository settings.
-2. Owner reviews and explicitly approves the proposed baseline commit, private repository creation and initial push. Baseline includes earlier approved handoff/planning and ticket 01 changes required for a reproducible project; tickets 03–07 are planning documents only.
-3. Connect `origin`, push the baseline, then record the actual successful Actions run URL, commit SHA, job/step conclusions and foundation report.
-4. Prepare a separate `codex/ci-failure-proof` branch with one temporary unused-import file; obtain explicit approval for its commit and push. Verify the actual hosted job fails on the injected problem. Never merge the probe into `master`.
-5. Return to the passing branch, record both run URLs/SHAs and final local checks, then check the remaining acceptance box and mark `resolved` only after evidence is complete. Show closeout documentation and obtain separate approval before committing it.
+## Repository and handoff
 
-Ticket 03 remains unstarted. This review does not close ticket 02.
+Private repository: [Huzaifawaseem2006/careflow-ai](https://github.com/Huzaifawaseem2006/careflow-ai). `origin` is connected, and `master` remains at the passing baseline. The intentionally red `codex/ci-failure-proof` branch is retained only as evidence; it was not merged. Confirmed `backend/ci_failure_probe.py` is absent on `master`.
+
+Pre-upload scan: 36 candidate files and 61 historical blobs had no matching common secret/private-key/credential patterns; no environment or credential file was proposed for upload. Both hosted logs also had no matches for the token/private-key patterns checked. These bounded scans are not a comprehensive security guarantee. Local logs, structured evidence and the upload audit remain ignored under `test-results/`.
+
+AI evaluations were skipped because no AI path changed; the full Phase 1 gate is not yet applicable. Ticket 02 has no remaining acceptance blocker. Review the five closeout documentation files before authorizing their commit/push. Ticket 03 is unstarted and requires separate implementation approval.
