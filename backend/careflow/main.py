@@ -1,11 +1,29 @@
 from typing import Literal
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from careflow.identity import IdentityError
+from careflow.identity_api import AuthBodyLimit, error_response
+from careflow.identity_api import router as identity_router
 from careflow.readiness import database_is_ready
 
 app = FastAPI(title="CareFlow AI")
+app.add_middleware(AuthBodyLimit)
+app.include_router(identity_router)
+
+
+@app.exception_handler(IdentityError)
+def identity_error(request: Request, error: IdentityError) -> JSONResponse:
+    return error_response(error.status, error.code, error.message)
+
+
+@app.exception_handler(RequestValidationError)
+def validation_error(request: Request, error: RequestValidationError) -> JSONResponse:
+    # Never echo request inputs (especially passwords) in validation failures.
+    return error_response(422, "VALIDATION_ERROR", "Invalid request.")
 
 
 class HealthResponse(BaseModel):

@@ -9,6 +9,7 @@ description = "Synthetic-data clinic front-desk application"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "alembic==1.20.0",
+    "argon2-cffi==25.1.0",
     "fastapi==0.143.1",
     "pydantic==2.13.4",
     "psycopg[binary]==3.3.6",

@@ -75,7 +75,7 @@ Remove-Variable taskDatabasePassword
 .venv\Scripts\python -m alembic current
 ```
 
-Expected revision after Ticket 04: `0002_synthetic_fixtures`. An existing Ticket 03 database at `0001_vector` needs the explicit upgrade above; `/ready` returns 503 until it is upgraded. Migrations require permission to install extensions (normally the local administrator for this extension). Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
+Expected revision after Ticket 05: `0003_patient_sessions`. An existing Ticket 03 database at `0001_vector` needs the explicit upgrade above; `/ready` returns 503 until it is upgraded. Migrations require permission to install extensions (normally the local administrator for this extension). Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
 
 ```sql
 CREATE ROLE careflow_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
@@ -145,3 +145,41 @@ For Ticket 04 live verification with a locally configured maintenance `TEST_DATA
 ```
 
 These tests only create/migrate/reset/drop their disposable databases. The existing `careflow_ai` database is not touched. Ticket 04 verification on 2026-10-16 passed 22 offline/unit tests, 2 CI regressions and 7 owner-run PostgreSQL integration tests across separate runs. The saved PostgreSQL JUnit report confirms zero failures, errors or skips. Details are tracked in the ticket and progress log; skipped tests are not passing PostgreSQL evidence.
+
+## Synthetic patient accounts and sessions (Ticket 05)
+
+D02 uses pre-provisioned synthetic patients. There is no public registration, staff account creation or email recovery. The fixture personas are separate from authenticated accounts: an operator must explicitly provision each patient. Passwords are 12–128 characters and stored using pinned argon2-cffi 25.1.0 (Argon2id, random salts). Duplicate creation fails without changing an existing password. Operator reset preserves identity and atomically revokes all owned sessions. Neither fixture load nor fixture reset creates accounts or changes passwords.
+
+For a deliberately selected local synthetic demo database, configure an operator `DATABASE_URL`, migrate and load fixtures, then use these commands. Each prompts twice without echo; never put a password in command arguments, a URL, a script or Git:
+
+```powershell
+.venv\Scripts\python -m careflow.accounts create --email patient.one@careflow.example.invalid --confirm-synthetic-account
+.venv\Scripts\python -m careflow.accounts reset-password --email patient.one@careflow.example.invalid --confirm-synthetic-account
+```
+
+The same local target allowlist as the fixture CLI applies. `--password-stdin` explicitly accepts one password line from a secure pipe for automation/tests; a noninteractive terminal without that flag fails. Use trusted secret input, not a literal password in shell history. CLI success/failure omits identity details, hashes and credentials. Reset/creation require operator permissions; there is no HTTP or AI account-management endpoint.
+
+Use the separate application role for the API. After the migration, an operator grants only:
+
+```sql
+GRANT SELECT ON public.users, public.patients TO careflow_app;
+GRANT UPDATE (password_hash) ON public.users TO careflow_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sessions, public.auth_limits TO careflow_app;
+```
+
+Retain the earlier readiness grants. The API role cannot insert accounts/patient mappings or change account activity/email through these grants. No new role or grants were applied to the existing database by Ticket 05 verification.
+
+Set `AUTH_ORIGIN` to the exact HTTPS browser origin, without a trailing slash/path (default `https://localhost:8000`). Authentication requires HTTPS even locally; Secure cookies are never disabled. Run Uvicorn with your locally trusted TLS certificate/key, or use an explicitly trusted same-origin TLS proxy. Plain HTTP still serves health/readiness but is rejected by auth routes. Do not commit certificate private keys. TLS/proxy deployment is not implemented by this ticket.
+
+Browser flow: GET `/auth/csrf`, retaining its HttpOnly cookie and returned CSRF token; POST `/auth/login` with JSON email/password plus matching Origin and X-CSRF-Token. Login replaces both tokens. GET `/auth/me` resolves identity from the stored session; POST `/auth/logout` with matching Origin/CSRF revokes it and clears the cookie. Save the new CSRF value after login; do not put session/CSRF tokens in logs or URLs. Authenticated sessions last eight hours absolutely; pre-login sessions last ten minutes. Reading CSRF does not extend the deadline. All auth responses are no-store. See `docs/API_CONTRACTS.md` for limits, error codes and retry behavior.
+
+Run real identity verification with a local maintenance TEST_DATABASE_URL with CREATEDB, CREATEROLE and pgvector-install privileges. Tests create/drop only disposable databases plus a uniquely named temporary login role for the least-privilege check; grants are confined to its disposable database and the role is removed in `finally`. They do not target/reset `careflow_ai`:
+
+```powershell
+.venv\Scripts\python -m pytest backend/integration_tests/test_identity_integration.py -q
+.venv\Scripts\python -m pytest backend/tests backend/integration_tests ci_tests -q -rs --junitxml test-results/ticket05-tests.xml
+```
+
+Run the CI suite serially and use ordinary Windows permissions/fresh test temporary directories if the documented sandbox restriction recurs. No configured URL means PostgreSQL tests explicitly skip; skips cannot close Ticket 05. The account lifecycle is demo-only; real users, production recovery, staff authentication, deployment and broader release controls are not established here.
+
+Ticket 05 verification on 2026-10-16: 52 local tests passed with no failures/errors/skips (30 offline/unit, 20 real PostgreSQL, 2 CI regressions); format/lint/types/dependencies passed. Standards/spec review findings are closed. Temporary database/role cleanup and encrypted credential-helper deletion were verified. This does not claim a deployed HTTPS service, hosted CI run, or completed Phase 1 gate. Detailed commands/results are in the ticket and progress log.

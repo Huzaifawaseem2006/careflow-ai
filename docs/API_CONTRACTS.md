@@ -1,6 +1,6 @@
 # Proposed API and tool contracts
 
-Status: planning sketch except for the implemented `GET /health` liveness and `GET /ready` database readiness routes below. No other endpoint or tool is implemented. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
+Status: health/readiness and the Ticket 05 patient-session routes below are implemented. Other domain endpoints and all AI tools remain planned. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
 
 ## Common rules
 
@@ -16,6 +16,10 @@ Approved explicit confirmation flow: `POST /appointment-proposals` or correspond
 | --- | --- | --- |
 | `GET /health` | Public | Implemented: HTTP 200 with `{"status":"ok"}`; process liveness only, no database readiness or sensitive details |
 | `GET /ready` | Public | Implemented: HTTP 200 with `{"status":"ok"}` only when PostgreSQL is reachable, the expected Alembic revision is applied and `vector` is installed; otherwise HTTP 503 with `{"status":"unavailable"}`. No credentials or dependency details; `Cache-Control: no-store`. Verified against PostgreSQL 17.11 / pgvector 0.8.7. |
+| `GET /auth/csrf` | Same-origin browser | Implemented: 200 `{csrf_token}` and a Secure/HttpOnly cookie; creates a 10-minute pre-login session or reuses a valid session without extending its deadline. |
+| `POST /auth/login` | Pre-login session | Implemented: JSON `{email, password}`, exact configured Origin and session-bound `X-CSRF-Token`; rotates session/CSRF tokens on success, returning 200 `{csrf_token}` and a new cookie. |
+| `GET /auth/me` | Provisioned patient | Implemented: 200 `{user_id, patient_id, email, role: "patient"}` resolved from a valid stored session and active account/patient mapping; otherwise 401. |
+| `POST /auth/logout` | Same-origin browser | Implemented: valid sessions require matching CSRF; revokes session and clears cookie, 204. Retrying after revocation/expiry is harmless, 204; origin is still required. |
 | `GET /specialties` | Public | Active clinic catalog only |
 | `GET /doctors` | Public | Filter active, specialty and the single Karachi clinic; any finer location filter needs a separate requirement |
 | `GET /doctors/{id}/slots` | Public | Derived available, timezone-aware, bounded date range; never invent |
@@ -31,6 +35,14 @@ Approved explicit confirmation flow: `POST /appointment-proposals` or correspond
 | Staff routes, precise paths TBD | Scoped staff/admin | Clinic assignment and explicit permissions for schedule, documents, escalations and redacted audit |
 
 Proposal paths are additions to the PRD draft required for server-verifiable confirmation. J5 should be minimally amended to state that handoff requires patient sign-in. Do not expose staff CRUD before its scoped service rules exist. Slot identifiers refer to persisted 30-minute capacity-one slots; cancellation and rescheduling use the approved 24-hour cutoff.
+
+### Patient-session transport and errors
+
+Auth routes require HTTPS. Cookie `__Host-careflow_session` is host-only, Path=/, Secure, HttpOnly, SameSite=Strict; authenticated sessions expire after eight hours absolutely. Only the session token's SHA-256 digest is persisted. CSRF tokens are random session-bound values; obtaining one does not authenticate a patient. Login/logout require an exact Origin match to AUTH_ORIGIN (default `https://localhost:8000`). GETs reject explicitly foreign origins and cross-site fetch metadata; normal same-origin GETs need no Origin header. CORS is not enabled. URLs, role/patient fields and caller identity headers grant no authority.
+
+All auth responses use Cache-Control: no-store. Auth POST bodies are bounded to 4096 bytes before parsing, including requests without Content-Length. Email is bounded to 160 characters and normalized for lookup; passwords are bounded to 128 characters, never trimmed or echoed in validation errors. Extra login fields are rejected. PostgreSQL persists a shared limit of 30 CSRF/login requests per peer IP per minute and five login attempts per normalized email per five minutes, including successful attempts. New sessions do not reset these limits. Expired counters are cleaned opportunistically. A deployment proxy must supply the real client address only through explicitly trusted configuration; local HTTP tests do not establish proxy/TLS deployment.
+
+Errors use `{code, message, correlation_id}`: 401 AUTH_REQUIRED or generic INVALID_CREDENTIALS; 403 CSRF_REJECTED; 413 REQUEST_TOO_LARGE; 422 VALIDATION_ERROR; 429 RATE_LIMITED with conservative Retry-After: 300; 503 AUTH_UNAVAILABLE. Database/configuration details and passwords are omitted. Wrong-password, unknown-account and unprovisioned-persona login errors have the same body/status; identical whole-request timing is not claimed. Public registration/recovery endpoints are absent (404), including staff registration.
 
 ## Agent tools
 

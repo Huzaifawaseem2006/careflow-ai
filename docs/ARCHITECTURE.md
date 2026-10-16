@@ -53,7 +53,9 @@ PostgreSQL documents row locks and partial unique indexes; combining them is our
 
 ## Identity and authorization
 
-Use server-managed sessions with Secure, HttpOnly cookies in hosted environments, appropriate CSRF protection, Origin checks and restrictive CORS. No public staff registration. The patient credential and recovery flow remains pending. No identity/role/patient ID is accepted from tool arguments; ownership is resolved from server context on every private operation. Deny by default; use non-enumerating errors for inaccessible private resources.
+Ticket 05 implements D02: pre-provisioned synthetic patients, local Argon2id passwords and operator-only creation/reset, with no public registration/email recovery. Ticket 04 personas remain credential-free; explicit provisioning creates separate users/patients UUIDs linked to a patient persona. Fixture role labels grant no access. Sessions persist opaque token digests, a session-bound CSRF value and absolute expiry; auth_limits provides PostgreSQL-backed peer/account request limits. Schema head is `0003_patient_sessions`.
+
+All auth routes require HTTPS; cookies are Secure/HttpOnly/SameSite=Strict and host-only. Mutations require the exact configured origin and CSRF token, including before login. Login consumes/rotates the pre-login session. Logout revokes its session. Password reset locks the user, changes the hash and revokes every owned session atomically; login takes the same user lock before locking/rotating its session. Thus old-password sessions cannot survive a completed reset. Duplicate/retried provisioning fails without changing credentials. CORS is not enabled. Backend identity lookup checks persisted expiry, account activity and patient mapping; client identity fields grant no authority. Errors omit sensitive input/configuration details. Staff authentication and production recovery remain outside this synthetic demo ticket.
 
 | Actor | Access |
 | --- | --- |
