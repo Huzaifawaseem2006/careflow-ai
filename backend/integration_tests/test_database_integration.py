@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from careflow.database import database_engine
+from careflow.database import SCHEMA_REVISION, database_engine
 from careflow.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -67,7 +67,7 @@ def test_clean_and_repeated_upgrade_preserve_schema_and_vector_functionality() -
             )
             assert (
                 connection.scalar(text("SELECT version_num FROM alembic_version"))
-                == "0001_vector"
+                == SCHEMA_REVISION
             )
             postgres_version = connection.scalar(text("SHOW server_version"))
             vector_version = connection.scalar(

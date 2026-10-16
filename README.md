@@ -75,7 +75,7 @@ Remove-Variable taskDatabasePassword
 .venv\Scripts\python -m alembic current
 ```
 
-Expected revision: `0001_vector`. Migrations require permission to install extensions (normally the local administrator for this extension). Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
+Expected revision after Ticket 04: `0002_synthetic_fixtures`. An existing Ticket 03 database at `0001_vector` needs the explicit upgrade above; `/ready` returns 503 until it is upgraded. Migrations require permission to install extensions (normally the local administrator for this extension). Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
 
 ```sql
 CREATE ROLE careflow_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
@@ -102,7 +102,7 @@ $env:TEST_DATABASE_URL = $env:DATABASE_URL
 .venv\Scripts\python -m pytest backend/integration_tests -v -s -rs
 ```
 
-Set `TEST_DATABASE_URL` while `DATABASE_URL` still refers to the **administrator connection**, preferably to database `postgres`, before switching to the application role. The fixture uses its own disposable database connection for each test. No external host is accepted. Do not expose the URL in test reports or logs. Four tests cover fresh/repeated migration, vector distance, readiness with missing schema/extension or stale revision, and independent liveness. The successful migration test prints actual PostgreSQL/pgvector versions. The regular backend suite also checks unavailable/invalid configuration with safe error bodies. Without `TEST_DATABASE_URL`, all four integration tests explicitly skip; skips do not satisfy Ticket 03. With a configured but unusable server, setup fails rather than skipping.
+Set `TEST_DATABASE_URL` while `DATABASE_URL` still refers to the **administrator connection**, preferably to database `postgres`, before switching to the application role. The fixture uses its own disposable database connection for each test. No external host is accepted. Do not expose the URL in test reports or logs. Four database tests cover fresh/repeated migration, vector distance, readiness with missing schema/extension or stale revision, and independent liveness. Three fixture tests cover deterministic load/reset, preservation of unrelated rows, atomic rollback and refusal before migration. The successful migration test prints actual PostgreSQL/pgvector versions. The regular backend suite also checks unavailable/invalid configuration with safe error bodies. Without `TEST_DATABASE_URL`, all seven integration tests explicitly skip; skips do not satisfy database acceptance criteria. With a configured but unusable server, setup fails rather than skipping.
 
 Before pgvector installation, you can run the PostgreSQL-only check after configuring `TEST_DATABASE_URL`:
 
@@ -120,3 +120,28 @@ If the restricted Windows execution environment blocks pytest temporary director
 $taskTestTemp = Join-Path (Get-Location).Path ('test-results\pytest-' + [guid]::NewGuid().ToString('N'))
 .venv\Scripts\python -m pytest backend/tests backend/integration_tests ci_tests -q -rs --basetemp $taskTestTemp
 ```
+
+## Synthetic clinic fixtures (Ticket 04)
+
+The built-in fixture manifest contains one **CareFlow Fictional Demo Clinic** in Karachi (`Asia/Karachi`, PKR) and four explicitly synthetic personas: two patients, one receptionist and one admin. IDs are fixed UUIDs and emails use `careflow.example.invalid`. These are credential-free records in `demo_identities`, not login accounts or granted permissions. D02 and actual authentication remain for Ticket 05. No doctors, appointment slots, clinical facts or policy corpus are seeded here.
+
+Use an operator connection in `DATABASE_URL` pointing to the local synthetic demo database, then explicitly migrate and confirm fixture writes:
+
+```powershell
+.venv\Scripts\python -m alembic upgrade head
+.venv\Scripts\python -m careflow.fixtures load --confirm-synthetic-fixtures
+# Restore the known fixture records after demo edits:
+.venv\Scripts\python -m careflow.fixtures reset --confirm-synthetic-fixtures
+```
+
+`load` inserts missing fixture IDs and preserves existing rows. `reset` inserts missing fixture IDs and restores their manifest fields. Both are repeatable, atomic and serialized against other fixture writers. Reset never deletes/truncates tables, resets the database or removes unrelated rows. A uniqueness conflict rolls the entire operation back. This is a fixture reset, not an appointment/history reset.
+
+Both commands require the confirmation flag, current migration head, a loopback host (`localhost`, `127.0.0.1`, `::1`) and database name `careflow_ai`, `careflow_demo`, or the integration suite's exact `careflow_test_<32 lowercase hex>` pattern. URLs with query parameters are refused. The operator is responsible for using a synthetic-only local database. No HTTP/LLM fixture tool exists, and the API role needs no fixture-write grants. Commands print only generic success/failure, never connection URLs, identity details or credentials. Downgrading the new migration drops its two tables and requires separate explicit approval on any existing database.
+
+For Ticket 04 live verification with a locally configured maintenance `TEST_DATABASE_URL`:
+
+```powershell
+.venv\Scripts\python -m pytest backend/integration_tests -v -s -rs --junitxml test-results/ticket04-postgres.xml
+```
+
+These tests only create/migrate/reset/drop their disposable databases. The existing `careflow_ai` database is not touched. Ticket 04 verification on 2026-10-16 passed 22 offline/unit tests, 2 CI regressions and 7 owner-run PostgreSQL integration tests across separate runs. The saved PostgreSQL JUnit report confirms zero failures, errors or skips. Details are tracked in the ticket and progress log; skipped tests are not passing PostgreSQL evidence.
