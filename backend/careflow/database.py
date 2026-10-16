@@ -7,7 +7,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.pool import NullPool
 
-SCHEMA_REVISION = "0003_patient_sessions"
+SCHEMA_REVISION = "0004_clinic_catalog"
 
 
 def database_engine() -> Engine:

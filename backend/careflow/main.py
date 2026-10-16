@@ -5,6 +5,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from careflow.catalog import CatalogError
+from careflow.catalog_api import router as catalog_router
 from careflow.identity import IdentityError
 from careflow.identity_api import AuthBodyLimit, error_response
 from careflow.identity_api import router as identity_router
@@ -13,6 +15,12 @@ from careflow.readiness import database_is_ready
 app = FastAPI(title="CareFlow AI")
 app.add_middleware(AuthBodyLimit)
 app.include_router(identity_router)
+app.include_router(catalog_router)
+
+
+@app.exception_handler(CatalogError)
+def catalog_error(request: Request, error: CatalogError) -> JSONResponse:
+    return error_response(error.status, error.code, error.message)
 
 
 @app.exception_handler(IdentityError)

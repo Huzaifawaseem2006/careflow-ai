@@ -75,7 +75,7 @@ Remove-Variable taskDatabasePassword
 .venv\Scripts\python -m alembic current
 ```
 
-Expected revision after Ticket 05: `0003_patient_sessions`. An existing Ticket 03 database at `0001_vector` needs the explicit upgrade above; `/ready` returns 503 until it is upgraded. Migrations require permission to install extensions (normally the local administrator for this extension). Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
+Expected revision after Phase 2 Ticket 01: `0004_clinic_catalog`. An existing Ticket 03 database at `0001_vector` needs the explicit upgrade above; `/ready` returns 503 until it is upgraded. Migrations require permission to install extensions (normally the local administrator for this extension). Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
 
 ```sql
 CREATE ROLE careflow_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
@@ -225,3 +225,52 @@ Exit **0** means the Phase 1 infrastructure gate passed; **1** means a check fai
 Gate policy tests run within the existing serial `ci_tests` suite, using controlled command outputs to exercise report handling without recursively launching the gate. The existing CI tests still exercise real passing/failing foundation subprocesses. GitHub Actions remains an offline foundation check; hosted success alone cannot satisfy the PostgreSQL phase gate. Inspect the actual hosted run for the exact committed SHA separately.
 
 Ticket 07 verification on 2026-10-16: complete Phase 1 infrastructure gate **passed**, with **82 tests passed and zero skips/failures/errors**, including all 20 real PostgreSQL tests. All seven behavioral cases remain pending and unexecuted. Main database mutation counters were unchanged; disposable databases/role and temporary credential helpers were removed. Ticket 07/progress record exact commands, evidence and limitations. This result covers the uncommitted working tree; no model-backed or deployed-production quality is certified.
+
+
+## Public clinic catalog (Phase 2 Ticket 01)
+
+After upgrading explicitly to `0004_clinic_catalog` and loading the base clinic
+fixtures, an operator can load the synthetic catalog using their local operator
+`DATABASE_URL`:
+
+```powershell
+.venv\Scripts\python -m careflow.catalog_fixtures load --confirm-synthetic-catalog
+```
+
+This confirmed command inserts missing fixed IDs in one transaction. Repeating
+it preserves edited/inactive catalog rows, credentials, sessions and unrelated
+records. Base fixture reset also preserves catalog rows. It requires an existing
+fixture clinic and current migration head; it refuses unconfirmed, remote or
+unrecognized targets. Do not run this command on `careflow_ai` as part of tests.
+All verification uses newly created disposable `careflow_test_<uuid>` databases.
+The manifest has two specialties, two explicitly synthetic doctors and two
+explicitly synthetic services; it contains no schedules or slots.
+
+After the migration, grant only public catalog reads to the API role, using the
+local operator connection:
+
+```sql
+GRANT SELECT ON public.clinics, public.specialties, public.doctors, public.services TO careflow_app;
+```
+
+These grants permit no catalog writes. See `docs/API_CONTRACTS.md` for filters,
+public field lists, bounded pagination and safe errors. A model/frontend-free
+HTTP walkthrough against an already migrated/seeded local API is:
+
+```powershell
+Invoke-RestMethod 'http://127.0.0.1:8000/specialties'
+Invoke-RestMethod 'http://127.0.0.1:8000/doctors?city=Karachi&limit=20'
+Invoke-RestMethod 'http://127.0.0.1:8000/doctors/00000000-0000-4000-8000-000000000201/fee'
+Invoke-RestMethod 'http://127.0.0.1:8000/services'
+Invoke-RestMethod 'http://127.0.0.1:8000/services/00000000-0000-4000-8000-000000000302/fee'
+```
+
+Consultation `2500.00` and service `1500.25` are fictional persisted PKR prices
+from this manifest, not real clinic facts. Public reads never grant staff access.
+
+Ticket 01 verification on 2026-10-16: **104 local tests passed**, zero required
+skips/failures/errors, including all **27 real PostgreSQL tests** (seven catalog
+and 20 existing regressions). PostgreSQL 17.11 cleanup audits found no leftover
+disposable databases/roles; temporary credentials/helpers were removed.
+The persisted HTTP walkthrough ran through the in-process ASGI API. Hosted CI
+was not run for these uncommitted changes; see the ticket/progress evidence.

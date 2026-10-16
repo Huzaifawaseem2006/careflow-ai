@@ -1,6 +1,6 @@
 # Proposed architecture
 
-Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. FastAPI liveness, database configuration, readiness and initial Alembic migration are implemented and verified with local PostgreSQL 17.11 / pgvector 0.8.7. Domain modules below remain planned. Detailed schema/API choices still require task-level review. PRD remains authoritative, with the owner-approved Docker-free amendment dated 2026-10-15.
+Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. FastAPI liveness, database configuration, readiness and initial Alembic migration are implemented and verified with local PostgreSQL 17.11 / pgvector 0.8.7. Patient sessions and the Phase 2 Ticket 01 public catalog are implemented as described below; remaining domain modules are planned. Detailed schema/API choices still require task-level review. PRD remains authoritative, with the owner-approved Docker-free amendment dated 2026-10-15.
 
 ## Minimal structure and boundaries
 
@@ -42,6 +42,19 @@ Two additional tables are proposed because the PRD sketches do not cover securit
 - `idempotency_records`: actor, operation, key, request digest and persisted result reference. Unique actor/operation/key; mismatched payload yields conflict. Appointment-only keys cannot cover cancellation or rescheduling retries.
 
 Cookie sessions may require a sessions table if local identity is selected. Auth schema depends on that decision; do not pretend password hash and OIDC subject are interchangeable.
+
+Phase 2 Ticket 01 adds public catalog tables `specialties`, `doctors`, `services`
+at head `0004_clinic_catalog`. All reference a clinic; a composite foreign key
+ensures a doctor's specialty belongs to that same clinic. Each doctor currently
+has one specialty. Services have their own fee independently of consultation fees.
+PKR comes from clinic settings. PostgreSQL `numeric` plus range/scale checks
+limits amounts to 0–9999999999.99 and at most two decimal places, rejecting
+excess precision and nonfinite values rather than rounding invalid input.
+Public services always constrain the fixed demo clinic and active resources;
+caller filters cannot widen scope. Responses allowlist public fields. The local
+confirmed catalog loader is insert-only, atomic and serialized with fixture
+writers; fixture reset preserves the catalog and authentication data. No staff
+HTTP writes, scheduling or booking storage is introduced.
 
 ## Transaction design
 

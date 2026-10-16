@@ -1,6 +1,6 @@
 # Proposed API and tool contracts
 
-Status: health/readiness and the Ticket 05 patient-session routes below are implemented. Other domain endpoints and all AI tools remain planned. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
+Status: health/readiness, the Ticket 05 patient-session routes and the Phase 2 Ticket 01 public catalog below are implemented. Other domain endpoints and all AI tools remain planned. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
 
 ## Common rules
 
@@ -20,8 +20,8 @@ Approved explicit confirmation flow: `POST /appointment-proposals` or correspond
 | `POST /auth/login` | Pre-login session | Implemented: JSON `{email, password}`, exact configured Origin and session-bound `X-CSRF-Token`; rotates session/CSRF tokens on success, returning 200 `{csrf_token}` and a new cookie. |
 | `GET /auth/me` | Provisioned patient | Implemented: 200 `{user_id, patient_id, email, role: "patient"}` resolved from a valid stored session and active account/patient mapping; otherwise 401. |
 | `POST /auth/logout` | Same-origin browser | Implemented: valid sessions require matching CSRF; revokes session and clears cookie, 204. Retrying after revocation/expiry is harmless, 204; origin is still required. |
-| `GET /specialties` | Public | Active clinic catalog only |
-| `GET /doctors` | Public | Filter active, specialty and the single Karachi clinic; any finer location filter needs a separate requirement |
+| `GET /specialties` | Public | Implemented: active specialties in the fixed demo clinic; bounded pagination and clinic/city filters |
+| `GET /doctors` | Public | Implemented: active doctors and specialties; specialty UUID and clinic/city filters; exact consultation fee |
 | `GET /doctors/{id}/slots` | Public | Derived available, timezone-aware, bounded date range; never invent |
 | `POST /appointment-proposals` | Patient | Validate owned actor, actual slot and current summary; no booking mutation |
 | `POST /appointments` | Patient | Confirm proposal + idempotency key; atomic booking, persisted ID |
@@ -35,6 +35,36 @@ Approved explicit confirmation flow: `POST /appointment-proposals` or correspond
 | Staff routes, precise paths TBD | Scoped staff/admin | Clinic assignment and explicit permissions for schedule, documents, escalations and redacted audit |
 
 Proposal paths are additions to the PRD draft required for server-verifiable confirmation. J5 should be minimally amended to state that handoff requires patient sign-in. Do not expose staff CRUD before its scoped service rules exist. Slot identifiers refer to persisted 30-minute capacity-one slots; cancellation and rescheduling use the approved 24-hour cutoff.
+
+### Public clinic catalog (Phase 2 Ticket 01)
+
+Implemented guest reads: `GET /specialties`, `GET /doctors`, `GET /services`,
+`GET /doctors/{id}`, `GET /services/{id}`, `GET /doctors/{id}/fee` and
+`GET /services/{id}/fee`. No catalog write route or AI adapter exists.
+
+Lists return `{items, limit, offset}` ordered by persisted name then UUID.
+`limit` defaults to 20 (1–100), `offset` to 0 (0–10000). All lists accept optional
+`clinic_id` (UUID) and `city` (1–80 characters, trimmed case-insensitive exact
+match); doctors also accept `specialty_id` (UUID). Unknown filters, including
+`active=false`, are rejected. Public active status is mandatory, never widened
+by a caller. The fixed server scope is demo clinic
+`00000000-0000-4000-8000-000000000001`. Another clinic UUID or unsupported city
+returns an empty page; no additional branches are inferred. Location is the
+persisted clinic city, currently Karachi; no finer location search is implemented.
+
+Specialties expose `{id, clinic_id, name, city}`. Doctors add `specialty_id`,
+`consultation_fee`, `currency`; services add `fee`, `currency`. Each doctor has
+one clinic-scoped specialty; services are independently clinic-scoped. Fees are
+persisted decimal PKR values serialized as strings with exactly two decimal
+places (e.g. `"3500.50"`). Fee endpoints return `{id, amount, currency: "PKR"}`,
+using the same persisted resource ID and current fee as detail/list reads.
+These are price snapshots, not appointment reservations or booking fee snapshots.
+
+Inactive doctors/services, doctors with inactive specialties and resources in
+other clinics are omitted. Detail/fee lookups share those restrictions and return
+generic 404 `NOT_FOUND`. Malformed IDs/filters return safe 422 `VALIDATION_ERROR`;
+database/configuration failures return 503 `CATALOG_UNAVAILABLE`. Errors use the
+existing correlation-ID envelope without SQL, credentials or private associations.
 
 ### Patient-session transport and errors
 

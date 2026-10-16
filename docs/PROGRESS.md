@@ -267,3 +267,115 @@ Updated the Phase 2 plan and created four local tickets under `.scratch/phase-2-
 Reviewed the six resulting files against relevant PRD requirements, approved decisions, architecture/API contracts and actual backend interfaces. D03 horizon/time/edit policy, D04 expiry/retry retention and D12 schema/confirmation/change contracts remain approval points; plan recommendations are explicitly unapproved. No decisions were silently promoted to approved. Verification: documentation/link/structure checks and `git diff --check` only; no application tests, evals or hosted CI runs were needed or executed for this planning-only change. No features, dependencies, schema or API contracts were changed; no commit or push occurred.
 
 Next: review the plan/tickets and explicitly approve **Phase 2 Ticket 01 — Clinic Catalog** in a fresh session. Resolve later decision gates only before their dependent tickets. Phase 2 implementation and Phase 3 have not begun.
+
+## 2026-10-16 — Phase 2 Ticket 01 implemented; PostgreSQL verification blocked
+
+Owner approved Clinic Catalog only. Verified clean `master` at
+`fc3c66be04bbd0a6aeb37b267fa97d30329a8fbe` (`docs: plan phase 2 clinic
+operations`). Inspected the current ticket, Phase 2 plan, relevant progress and
+decisions, FR-01, API/schema and existing database/fixture/auth patterns. No
+remote synchronization or hosted-CI claim is made for this session.
+
+Implemented migration/readiness head `0004_clinic_catalog`, clinic-scoped
+specialties/doctors/services, composite doctor-specialty clinic integrity and
+PKR decimal range/scale constraints. Added bounded stable public list/detail/fee
+routes with fixed server clinic scope, active-only visibility, safe errors and
+public field allowlists. Added the explicitly confirmed insert-only synthetic
+catalog CLI using the existing local target guard and fixture advisory lock.
+Updated README, API contracts and architecture. Existing auth services, fixture
+reset, infrastructure and dependencies remain unchanged. D03/D04/D12
+recommendations remain unapproved; none blocks Ticket 01. No Ticket 02 work.
+
+Verification actually executed:
+
+- `.venv\Scripts\python scripts/check_foundation.py --report
+  test-results/catalog-foundation-verified.json` with a fresh ignored workspace
+  basetemp: **passed**, 62 offline/unit/HTTP/eval-infrastructure tests, zero
+  failures/errors/skips; format/lint/strict types passed (41 source files).
+  Includes 15 new offline catalog cases. Report records starting HEAD and dirty
+  working tree. Subsequent scoped format/lint/type checks passed.
+- `.venv\Scripts\python -m pytest ci_tests -q --basetemp
+  test-results/catalog-ci --junitxml test-results/catalog-ci.xml`: **15 passed**
+  in 72.14 seconds, including actual serial foundation subprocess regressions.
+- `.venv\Scripts\python -m pip check`: **passed**.
+- `.venv\Scripts\python -m pytest backend/integration_tests -q -rs --junitxml
+  test-results/catalog-postgres-without-credentials.xml`: **27 skipped** (seven
+  new catalog + 20 existing), because TEST_DATABASE_URL is unset. No database
+  acceptance, migration/constraint correctness or persisted HTTP walkthrough
+  success is claimed. No operation connected to or changed `careflow_ai`.
+- Initial foundation runs caught an unused import/format issue (fixed) and
+  Windows sandbox temporary-directory permission errors. Final passing
+  foundation/serial runs used ordinary Windows execution outside the sandbox;
+  known Starlette TestClient deprecation remains non-failing. Skipped-database
+  run also emitted a non-failing sandbox pytest-cache warning.
+- No hosted CI triggered (no approved commit/push). No AI/prompt/tool/retrieval
+  changes or model-backed evals; the seven existing behavioral cases remain
+  pending. Offline infrastructure execution is not behavioral quality evidence.
+
+Ticket 01 is **needs-info**, not resolved. All acceptance boxes remain unchecked
+until required real PostgreSQL verification runs. Seven new DB cases cover
+clinic/inactive-resource isolation, combined filters, stable pages, persisted
+fees/HTTP walkthrough, schema constraints/consistency, repeat confirmed CLI,
+credential/session/unrelated-data preservation, rollback, stale schema/readiness
+and restricted read-only grants. These are authored tests, currently unexecuted.
+
+Next: owner runs ignored `test-results/configure-catalog-tests.ps1` locally to
+enter the PostgreSQL operator credential securely (never chat). It uses Windows
+encryption for temporary local storage. Then run ignored
+`test-results/run-catalog-tests.ps1`, which supplies child-process-only
+TEST_DATABASE_URL to maintenance `postgres`; existing fixtures create/drop
+unique disposable `careflow_test_<uuid>` databases. Verify zero required skips,
+failures or leftovers, remove the temporary encrypted credential and both
+helpers, update acceptance/status/evidence, and hand off Ticket 01. No credential
+file existed at this handoff. Every commit/push still requires explicit approval
+and documentation review; do not begin Ticket 02 in this session.
+
+## 2026-10-16 — Phase 2 Ticket 01 resolved; PostgreSQL verification passed
+
+Owner confirmed local secure credential setup and authorized continuation.
+The ignored setup helper was corrected to use `Read-Host -AsSecureString`,
+construct the `postgres` PSCredential, export Windows-encrypted Clixml and
+verify the saved credential. Repository HEAD remains `fc3c66be…` on `master`;
+no application source change was needed in this continuation.
+
+Ran `powershell -NoProfile -File .\test-results\run-catalog-tests.ps1` outside
+the Windows sandbox. The helper supplied child-process-only TEST_DATABASE_URL
+to local maintenance `postgres`, audited cleanup before/after and executed
+`.venv\Scripts\python -m pytest backend/integration_tests -q -rs --junitxml
+test-results/catalog-postgres.xml`. **27 passed in 124.32 seconds**, zero
+failures/errors/skips: all seven new catalog cases and 20 existing real database,
+fixture and patient-session regressions. Known Starlette deprecation remains
+non-failing. No migration, read, fixture operation or test connected to the
+existing `careflow_ai` database; test fixtures create/drop unique disposable
+`careflow_test_<uuid>` databases.
+
+Independently parsed all three JUnit reports: **62 foundation/offline/unit/HTTP
++ 15 serial CI + 27 PostgreSQL = 104 passed**, zero required skips/failures/errors.
+The prior missing-credential skips are superseded by this passing run, not
+counted as passing tests. Summary is ignored `test-results/catalog-verified.json`;
+per-suite XML/JSON and cleanup audits remain ignored. Format/lint/strict types
+and dependency checks passed as recorded in the previous entry; `pip check`
+and final diff checks also passed in this continuation. No product source
+changed after the earlier foundation/serial checks.
+
+All six acceptance criteria are now verified: fresh/repeated head/readiness;
+foreign-key and money integrity; stable bounded filtered catalog reads; exact
+persisted PKR fees; inactive/cross-clinic/private-field exclusion and safe errors;
+confirmed repeatable atomic loading preserving auth/unrelated data and fixture
+reset; and the seeded HTTP walkthrough. HTTP uses in-process ASGI transports,
+not a deployed TLS server or frontend. No model dependency was used.
+
+Read-only maintenance audits authenticated PostgreSQL **17.11**, with zero
+leftover test databases or temporary auth/catalog roles before and after.
+Removed and verified absence of all four temporary files: encrypted credential,
+setup script, test runner and audit helper. Parent DATABASE_URL/TEST_DATABASE_URL
+are unset; no password/connection URL was logged or committed.
+
+Ticket 01 is **resolved**, all six boxes checked; plan/README/ticket updated.
+D03/D04/D12 remain unapproved and unchanged. No new architecture choice,
+infrastructure/dependency change, hosted CI run, model-backed evaluation, commit
+or push occurred. Existing seven behavioral eval cases remain pending. There
+is no Ticket 01 blocker. Next: owner reviews the scoped code/documentation diff;
+each commit and push needs explicit approval. Recommend Ticket 02 only in a
+fresh session with separate approval and its dependent D03 choice resolved.
+Ticket 02 has not been started.

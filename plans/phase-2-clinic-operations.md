@@ -1,6 +1,6 @@
 # Phase 2 — Clinic Operations
 
-Status: planning complete; exactly four implementation tickets prepared, none implemented or individually approved. Entry checkout: clean `master` at `8a9925bc50daae32776f3d86f8a123321e2c8a91`, matching the owner's completed Phase 1 baseline. Owner reports hosted CI verified; this planning session did not independently fetch or rerun it.
+Status: Ticket 01 resolved on 2026-10-16: all six acceptance criteria verified, 104 local tests passed (including 27 PostgreSQL), zero skips/failures/errors. Tickets 02–04 remain unimplemented and need separate approval. Hosted CI is verified separately for the committed SHA. Entry checkout: clean `master` at `8a9925bc50daae32776f3d86f8a123321e2c8a91`, matching the owner's completed Phase 1 baseline. Owner reports hosted CI verified; this planning session did not independently fetch or rerun it.
 
 ## Scope and sequence
 
@@ -17,7 +17,7 @@ Deliver PRD FR-01–FR-05 backend operations in four focused sessions. Each slic
 
 ## Existing infrastructure and integration seams
 
-Reuse FastAPI, synchronous SQLAlchemy, Alembic head `0003_patient_sessions`, native PostgreSQL/pgvector, fictional clinic/persona fixtures, confirmed local fixture/account CLIs, HTTPS/origin/CSRF checks, safe errors and disposable PostgreSQL tests. Doctors, services, schedules, slots, appointments, proposals, mutation idempotency and appointment audit storage do not yet exist; add them incrementally.
+Reuse FastAPI, synchronous SQLAlchemy, native PostgreSQL/pgvector, fictional clinic/persona fixtures, confirmed local operator CLIs, HTTPS/origin/CSRF checks, safe errors and disposable PostgreSQL tests. Ticket 01 advances Alembic head from `0003_patient_sessions` to `0004_clinic_catalog` and implements scoped doctors, specialties, services and PKR fees. Schedules, slots, appointments, proposals, mutation idempotency and appointment audit storage remain for later tickets.
 
 Current auth body-limit middleware covers auth routes only; appointment writes need bounded transport coverage. Current patient identity exposes no clinic assignment: derive scope from persisted patient/persona relationships, never request claims. Its lookup helper owns a separate transaction; mutations need identity revalidation in their own transaction with compatible auth locking.
 
