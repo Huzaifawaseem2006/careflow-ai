@@ -183,3 +183,18 @@ Run real identity verification with a local maintenance TEST_DATABASE_URL with C
 Run the CI suite serially and use ordinary Windows permissions/fresh test temporary directories if the documented sandbox restriction recurs. No configured URL means PostgreSQL tests explicitly skip; skips cannot close Ticket 05. The account lifecycle is demo-only; real users, production recovery, staff authentication, deployment and broader release controls are not established here.
 
 Ticket 05 verification on 2026-10-16: 52 local tests passed with no failures/errors/skips (30 offline/unit, 20 real PostgreSQL, 2 CI regressions); format/lint/types/dependencies passed. Standards/spec review findings are closed. Temporary database/role cleanup and encrypted credential-helper deletion were verified. This does not claim a deployed HTTPS service, hosted CI run, or completed Phase 1 gate. Detailed commands/results are in the ticket and progress log.
+
+## Offline evaluation infrastructure (Ticket 06)
+
+From the checkout root, with the existing dev environment:
+
+```powershell
+.venv\Scripts\python -m evals.run_local
+.venv\Scripts\python -m evals.run_local --partition held-out --report evals/results/held-out.json
+.venv\Scripts\python -m evals.run_local --partition all --report evals/results/inventory.json
+.venv\Scripts\python -m pytest evals/tests -q
+```
+
+The default report is ignored at `evals/results/offline.json`; default partition is `dev`. Reports include Git revision/dirty state, dataset version/hash, fixture version and explicit offline labeling. All seven seeds are pending because chat/orchestrator and behavioral graders do not exist. Exit 0 validates infrastructure execution only. It does not certify agent quality, authorization, safety, citations or booking behavior. No model calls, credentials, database connection or seeded accounts are needed. Invalid dataset/schema/checksum/duplicate IDs fail with exit 2 and a generic error without echoing case text. Check the exit code before reading a previously saved report.
+
+Dataset edits require review, a new manifest dataset version and SHA-256; preserve LF bytes. Held-out cases must stay out of prompt tuning. Expected tool names describe planned contracts; textual response/state assertions are not executed yet. See `docs/EVAL_STRATEGY.md` for report semantics and the required real-path integration before Phase 3. Foundation checks now include eval formatting/lint/types/tests; hosted results require a later approved push.

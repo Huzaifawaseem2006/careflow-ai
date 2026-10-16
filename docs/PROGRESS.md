@@ -1,5 +1,21 @@
 # Progress and verification ledger
 
+## 2026-10-16 — Ticket 06 resolved: offline eval infrastructure
+
+Started clean on `master` at `22cf968` (`feat: implement secure synthetic patient sessions`); actual Git history and issue status confirm Tickets 01–05 complete/committed, superseding the previous pre-commit handoff. Owner explicitly approved only Ticket 06. Read implement guidance and scoped phase/eval/ticket/source context; used focused tests for this infrastructure slice, with no auth/booking/AI production changes.
+
+Added `evals/{schema.py,graders.py,run_local.py,__init__.py,cases.jsonl,manifest.json,tests/test_offline.py}` plus a scoped `.gitattributes` LF rule. Seven synthetic seeds cover every required category; stable IDs, fixture references, provenance, dev/held-out partitions, strict contract validation and reviewed version/hash metadata. Reused Pydantic and existing tools; no dependencies or services added. Foundation check targets/tests now include evals. Updated README, eval strategy, Ticket 06 and phase handoff; no new architectural decision was needed.
+
+Actual verification:
+
+- `.venv\Scripts\python -m pytest evals/tests -q`: **17 passed**. Invalid schemas, contradictions, duplicate IDs, checksum drift, malformed/empty data fail; CLI partitions and all five status denominators verified.
+- `.venv\Scripts\python -m pytest backend/tests backend/integration_tests evals/tests ci_tests -q -rs --basetemp test-results/ticket06-pytest --junitxml test-results/ticket06-tests.xml`: **49 passed, 20 skipped, no failures/errors, 86.50s**, one existing Starlette deprecation warning. Includes 30 existing offline/unit, 17 eval and 2 real serial CI subprocess regressions. All 20 DB tests skipped because TEST_DATABASE_URL is unset; no new PostgreSQL evidence is claimed. JUnit counts independently checked. Prior Ticket 05 database verification remains historical, not rerun evidence.
+- `ruff format --check backend scripts ci_tests evals`, `ruff check backend scripts ci_tests evals`, `mypy backend scripts ci_tests evals` (**31 files**), `pip check`, and final `git diff --check`: **passed**. Initial line-length and test-typing failures were fixed before the full run. Bounded scan of nine implementation/config/dataset files found no common credential patterns; reviewed final scope/artifacts. Generated reports and test results stay ignored; no CI probe remains.
+- Actual `python -m evals.run_local --partition all`: **exit 0, 7 pending, 0 executed, 0 passed/failed/skipped/blocked, null pass rate**. Separate dev/held-out runs: **5/2 pending**, both exit 0. Reports under ignored `evals/results/` carry code revision/dirty state, dataset/schema/fixture versions and explicit offline-infrastructure-only labels. No real agent/model/retrieval/DB path executed; unmeasured behavioral metrics remain null. No prior behavioral baseline exists to compare.
+- Completion code-review skill: independent read-only Standards and Spec reviews of baseline `22cf968` plus uncommitted/new files each found **zero code findings**. Documentation closeout records the pending runtime boundaries. No hosted CI run (no approved push), live model calls or Phase 1 gate.
+
+Ticket 06 is **resolved**, ready for owner review with no acceptance blocker. The report validates infrastructure only; all agent cases remain pending until the production chat/orchestrator/service path and behavioral graders exist, required before Phase 3 AI behavior. No model quality or clinical validation claim. Next recommended task is separately approved Ticket 07 in a fresh session; it was not started. No commit or push occurred; both still require explicit approval.
+
 ## 2026-10-14 — Phase 0 planning
 
 Status: planning artifacts drafted; owner approval pending. Repository was empty and not a Git repository at inspection. PRD v1.0 was provided as an attachment and copied verbatim to root `PRD.md`. `git init` created an empty local repository. No product source, API, migrations, app tests, eval cases or runnable service existed at inspection.

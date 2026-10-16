@@ -13,12 +13,12 @@ def main() -> int:
         "--report", type=Path, default=Path("test-results/foundation.json")
     )
     options = parser.parse_args()
-    targets = ["backend", "scripts", "ci_tests"]
+    targets = ["backend", "scripts", "ci_tests", "evals"]
     commands = {
         "format": ["ruff", "format", "--check", *targets],
         "lint": ["ruff", "check", *targets],
         "types": ["mypy", *targets],
-        "unit": ["pytest", "backend/tests", "-q"],
+        "unit": ["pytest", "backend/tests", "evals/tests", "-q"],
     }
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], text=True))
