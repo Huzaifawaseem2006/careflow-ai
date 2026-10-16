@@ -1,8 +1,8 @@
 # CareFlow AI
 
-Synthetic-data clinic front-desk assistant. Phase 1 includes verified process liveness and PostgreSQL migration/readiness infrastructure. Authentication, clinic workflows, AI behavior, frontend and evaluation infrastructure remain future tickets.
+Synthetic-data clinic front-desk assistant. Phase 1 includes process liveness, PostgreSQL migrations/readiness, synthetic fixtures, patient sessions and offline evaluation infrastructure. Clinic workflows, AI behavior and frontend remain future phases.
 
-Follow [AGENTS.md](AGENTS.md) for development workflow and scoped context loading. Project references: [PRD.md](PRD.md), [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), [progress](docs/PROGRESS.md), [safety](docs/SAFETY.md), [contracts](docs/API_CONTRACTS.md) and [evaluation strategy](docs/EVAL_STRATEGY.md). Phase 1 tickets 01–03 are complete; Tickets 04–07 need separate implementation approval.
+Follow [AGENTS.md](AGENTS.md) for development workflow and scoped context loading. Project references: [PRD.md](PRD.md), [architecture](docs/ARCHITECTURE.md), [decisions](docs/DECISIONS.md), [progress](docs/PROGRESS.md), [safety](docs/SAFETY.md), [contracts](docs/API_CONTRACTS.md) and [evaluation strategy](docs/EVAL_STRATEGY.md). Phase 1 tickets 01–06 are complete; see progress for Ticket 07 gate evidence.
 
 The phase plans under `plans/` follow PRD phases 0–7. See progress for actual verification evidence.
 
@@ -198,3 +198,30 @@ From the checkout root, with the existing dev environment:
 The default report is ignored at `evals/results/offline.json`; default partition is `dev`. Reports include Git revision/dirty state, dataset version/hash, fixture version and explicit offline labeling. All seven seeds are pending because chat/orchestrator and behavioral graders do not exist. Exit 0 validates infrastructure execution only. It does not certify agent quality, authorization, safety, citations or booking behavior. No model calls, credentials, database connection or seeded accounts are needed. Invalid dataset/schema/checksum/duplicate IDs fail with exit 2 and a generic error without echoing case text. Check the exit code before reading a previously saved report.
 
 Dataset edits require review, a new manifest dataset version and SHA-256; preserve LF bytes. Held-out cases must stay out of prompt tuning. Expected tool names describe planned contracts; textual response/state assertions are not executed yet. See `docs/EVAL_STRATEGY.md` for report semantics and the required real-path integration before Phase 3. Foundation checks now include eval formatting/lint/types/tests; hosted results require a later approved push.
+
+## Phase 1 regression gate (Ticket 07)
+
+From a fresh checkout, install the pinned Python and `.[dev]` dependencies as above. Configure native PostgreSQL/pgvector and use a local maintenance role with CREATEDB, CREATEROLE and extension-install privileges. Run from the repository root in an otherwise idle checkout:
+
+```powershell
+$ticket07Password = [uri]::EscapeDataString((Get-Credential -UserName postgres -Message 'Disposable database verification only').GetNetworkCredential().Password)
+$env:TEST_DATABASE_URL = "postgresql+psycopg://postgres:${ticket07Password}@127.0.0.1:5432/postgres"
+Remove-Variable ticket07Password
+try {
+    .venv\Scripts\python scripts/check_phase1.py
+    $ticket07Exit = $LASTEXITCODE
+} finally {
+    Remove-Item Env:TEST_DATABASE_URL -ErrorAction SilentlyContinue
+}
+Write-Host "Phase 1 gate exit: $ticket07Exit"
+```
+
+The password prompt keeps credentials out of shell history and Git. Tests create/drop disposable databases and a unique temporary role; they do not migrate/reset `careflow_ai`. Do not send passwords through chat. For an offline-only attempt, omit credential setup and run the same Python command; missing PostgreSQL evidence blocks the gate.
+
+The gate serially reuses foundation format/lint/types/unit/HTTP/eval-infrastructure tests, all PostgreSQL migration/fixture/session-security tests, CI subprocess regressions, and the full seven-case offline inventory. `test-results/phase1.json` records revision/dirty state, UTC timestamp, exact command argument arrays, exit codes, test counts, offline metadata/statuses and unresolved risks. Each invocation writes companion evidence into a new unique directory beside the report, avoiding stale evidence reuse. `--report <path>` selects another destination. Foundation reports now also record command arrays and companion unit-test JUnit XML.
+
+Exit **0** means the Phase 1 infrastructure gate passed; **1** means a check failed; **2** means required evidence is blocked (including skipped required tests). Any failure blocks progress, including authorization/privacy/security regressions. A failed command takes precedence over missing/skipped evidence. The offline inventory can succeed with seven **pending** behavioral cases: those remain zero executed, zero passed and a null pass rate. They do not certify agent/model quality or safety. Real-path behavioral evaluation is required before Phase 3 AI behavior; this command is not a model-backed deployment gate.
+
+Gate policy tests run within the existing serial `ci_tests` suite, using controlled command outputs to exercise report handling without recursively launching the gate. The existing CI tests still exercise real passing/failing foundation subprocesses. GitHub Actions remains an offline foundation check; hosted success alone cannot satisfy the PostgreSQL phase gate. Inspect the actual hosted run for the exact committed SHA separately.
+
+Ticket 07 verification on 2026-10-16: complete Phase 1 infrastructure gate **passed**, with **82 tests passed and zero skips/failures/errors**, including all 20 real PostgreSQL tests. All seven behavioral cases remain pending and unexecuted. Main database mutation counters were unchanged; disposable databases/role and temporary credential helpers were removed. Ticket 07/progress record exact commands, evidence and limitations. This result covers the uncommitted working tree; no model-backed or deployed-production quality is certified.

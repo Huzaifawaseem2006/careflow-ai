@@ -18,14 +18,27 @@ def main() -> int:
         "format": ["ruff", "format", "--check", *targets],
         "lint": ["ruff", "check", *targets],
         "types": ["mypy", *targets],
-        "unit": ["pytest", "backend/tests", "evals/tests", "-q"],
+        "unit": [
+            "pytest",
+            "backend/tests",
+            "evals/tests",
+            "-q",
+            "--junitxml",
+            str(options.report.with_suffix(".xml")),
+        ],
     }
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], text=True))
-    checks: list[dict[str, str | int]] = []
+    checks: list[dict[str, object]] = []
     for name, arguments in commands.items():
         result = subprocess.run([sys.executable, "-m", *arguments], check=False)
-        checks.append({"name": name, "exit_code": result.returncode})
+        checks.append(
+            {
+                "name": name,
+                "command": [sys.executable, "-m", *arguments],
+                "exit_code": result.returncode,
+            }
+        )
     failed = any(check["exit_code"] != 0 for check in checks)
     report = {
         "revision": revision,
