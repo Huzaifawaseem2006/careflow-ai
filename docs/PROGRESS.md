@@ -897,3 +897,77 @@ Changed-file manifest (18):
 - docs/DECISIONS.md
 - docs/PROGRESS.md
 - plans/phase-2-clinic-operations.md
+
+
+## 2026-10-17 — Ticket 04 committed/pushed; Phase 2 backend exit verified
+
+Owner explicitly approved one implementation commit with message
+`feat: complete appointment management and phase 2 regression` and a normal
+push to origin/master after staged review. Reconciled all 18 reviewed files,
+approved D12 rules, nine local criteria, actual 119 offline/unit + 119 PostgreSQL
++ 15 serial CI = 253 passes, zero failures/errors/skips, seven pending/unexecuted
+evals/null quality rate, TestClient warning and retained failures/reruns. Existing
+cleanup evidence confirmed no temporary DBs/roles/credential/helpers and unchanged
+main OID 16388 with counters 1498/91/21; tests never connected to careflow_ai.
+No database connection or repeated application regression was needed in this
+Git-only closeout; all 59 Python hashes still matched the successful full gate.
+
+Exact staged review passed: 18 scoped paths, no credentials, temporary helpers,
+generated reports or unrelated work; git diff --cached --check passed. Initial
+raw staged-hash comparison detected expected CRLF-to-LF index normalization,
+then normalized content comparison verified every byte of substantive content
+against the reviewed manifest. The only URL-secret pattern matches were README
+runtime-variable templates and a synthetic migration-test sentinel. Committed
+content was independently verified against staged hashes after creation.
+
+Created/pushed **24051ac1fa30cdf3da3f32eca7a92aa034f607f1**
+(`feat: complete appointment management and phase 2 regression`). Parent remains
+f35e7472f57eb5ba923744cebb0ed37353b9f4d5; no history rewrite. Verified local HEAD,
+origin/master and live remote SHA agree; working tree was clean after push.
+Authenticated GitHub Actions API verified [Foundation checks](https://github.com/Huzaifawaseem2006/careflow-ai/actions/runs/39060292965)
+for this exact SHA: **completed / success**, push event, master branch, updated
+2026-10-17T18:57:34Z (23:57:34 Asia/Karachi). Hosted workflow covers offline
+foundation and serial CI, not PostgreSQL; the 119 local PostgreSQL passes remain
+separate required evidence. No extra manual workflow run was triggered.
+
+All ten Ticket 04 criteria verified; status resolved. **Phase 2 backend exit
+achieved.** Seven behavioral evals remain pending/unexecuted with null quality
+pass rate; deployed HTTPS/production security and live model quality are not
+established by this result. Existing TestClient warning and prior test-only
+connection/DDL allowances remain unchanged. No new dependency, AI/tool/RAG,
+frontend, permanent credential storage or Phase 3 work.
+
+Post-CI closeout modifies exactly four documentation files: the Ticket 04 issue,
+README.md, plans/phase-2-clinic-operations.md and this progress log. They are
+intentionally uncommitted/unstaged pending separate owner approval for another
+commit and push, as required by AGENTS.md and the current request. The approved
+implementation commit is already safely pushed; a dirty working tree now contains
+only these explained closeout updates. Next: review/approve that separate
+documentation commit/push. Do not start Phase 3 without a new explicit approval.
+
+Nonsecret retained Git evidence: test-results/management-staged-review.json/patch,
+management-commit-push-verification.json, management-git-ci.json and the reviewed
+18-file manifest; final closeout diff is saved separately for owner review.
+
+
+## 2026-10-18 — documentation-only Phase 2 closeout approval and review
+
+Owner separately approved one commit `docs: close out phase 2 clinic operations`
+and a normal push to origin/master for exactly four Markdown files: Ticket 04,
+README, this progress log and the Phase 2 plan. Compared the previously saved
+management-closeout-documentation-review.patch against all four files; it matched.
+Rechecked actual retained JUnit and Actions evidence: Ticket 04 10/10 criteria,
+Phase 2 4/4 tickets resolved/backend exit verified, implementation SHA
+24051ac1fa30cdf3da3f32eca7a92aa034f607f1 with completed/success hosted Actions,
+119 offline/unit + 119 PostgreSQL + 15 serial CI = 253 local passes, zero
+failures/errors/skips. Seven behavioral evals remain pending/unexecuted with null
+quality pass rate; TestClient warning and earlier failures/reruns are preserved.
+
+Reconciled the current README/plan approval wording with this new authorization;
+prior dated entries remain historical. No code, API, migration, dependency,
+workflow, patient data or credential change. No new database connection or
+application-regression rerun is required for these documentation-only edits.
+Staging is restricted to those four paths; exact staged checks, resulting SHA,
+normal-push synchronization/cleanliness and any new hosted run are retained in
+ignored Git evidence and reported in the final handoff, without another tracked
+post-commit edit. No Phase 3 or additional commit is authorized.

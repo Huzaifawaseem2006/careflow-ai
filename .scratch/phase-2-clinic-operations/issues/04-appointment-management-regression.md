@@ -4,9 +4,9 @@
 
 **Blocked by:** 03 — Appointment Booking.
 
-**Status:** ready-for-human
+**Status:** resolved
 
-**Approval gate:** Implementation, D12 change contracts, inclusive cutoff, target pricing and three TDD seams approved 2026-10-17. Commit/push each still need separate approval. Hosted acceptance and Phase 2 exit remain pending.
+**Approval gate:** Implementation, D12 change contracts, inclusive cutoff, target pricing and three TDD seams approved 2026-10-17. Owner separately approved the implementation commit and normal push, completed at 24051ac1fa30cdf3da3f32eca7a92aa034f607f1. Hosted acceptance and Phase 2 exit are verified; any further commit/push still requires separate approval.
 
 ## Scope and existing infrastructure
 
@@ -23,7 +23,7 @@ Implement PRD FR-03/FR-05 on existing booking transactions, session security, sl
 - [x] Independent-connection races cover cancel versus reschedule, two reschedules, target booking contention, target schedule edit and same-key retries. Persisted outcomes preserve capacity one, complete moves, consistent availability/history and no duplicate action/audit.
 - [x] HTTP scenario demonstrates login, catalog/availability, booking, own listing, cancellation, another booking and rescheduling with persisted IDs/explicit confirmations. Ownership/cutoff negatives demonstrate rejection.
 - [x] Full applicable local regression passes with no required skips: format/lint/types, foundation/backend/eval-infrastructure tests, all PostgreSQL integration and serial CI regressions. Record commands, revision, counts and disposable-resource cleanup. Preserve Phase 1 auth/fixture/readiness behavior and offline inventory semantics. Any minimal gate extension rejects failed/missing/skipped evidence.
-- [ ] Following separately approved commit/push, verify hosted Actions for the exact reviewed SHA at the phase milestone. Hosted offline CI does not replace PostgreSQL evidence. If authorization/evidence is pending, report local results separately and keep hosted criterion/phase exit pending.
+- [x] Following separately approved commit/push, verify hosted Actions for the exact reviewed SHA at the phase milestone. Hosted offline CI does not replace PostgreSQL evidence. If authorization/evidence is pending, report local results separately and keep hosted criterion/phase exit pending.
 
 ## Risk-based TDD and integration
 
@@ -119,3 +119,48 @@ and independently rechecked clear. Full changed-file manifest is in PROGRESS.md.
 Next: owner reviews the code/documentation diff; separately approve any commit
 and push, then verify Actions for that exact SHA before resolving Ticket 04 or
 claiming Phase 2 exit. No commit, push, hosted run or Phase 3 work occurred.
+
+
+## 2026-10-17 — approved commit/push and hosted criterion verified
+
+Owner separately approved the exact 18-file implementation commit and normal
+push, conditional on staged review. Reviewed all content against the approved
+manifest/D12 and actual JUnit/cleanup evidence. All files matched the prior raw
+reviewed hashes; index content differed only by Git's normal CRLF-to-LF
+normalization. Staged set contained no credentials/helpers/reports/unrelated
+changes. Secret-pattern matches were documented runtime-variable templates and
+a synthetic test sentinel. git diff --cached --check passed. No tests were rerun
+for unchanged implementation; prior 253-test full gate remains the local evidence.
+
+Committed **24051ac1fa30cdf3da3f32eca7a92aa034f607f1**
+(`feat: complete appointment management and phase 2 regression`), then pushed
+normally to origin/master. Verified HEAD, tracking ref and live remote SHA match;
+working tree was clean after push. No history rewrite. Authenticated Actions API
+verified [Foundation checks](https://github.com/Huzaifawaseem2006/careflow-ai/actions/runs/39060292965)
+for that exact SHA: completed/success, push event on master, updated
+2026-10-17T18:57:34Z (23:57:34 Asia/Karachi). Hosted workflow validates offline
+foundation/serial CI only; local 119 PostgreSQL tests remain separate evidence.
+
+All ten criteria are now verified; Ticket 04 resolved and Phase 2 backend exit
+achieved. Seven behavioral evals remain pending/unexecuted with null quality
+pass rate; TestClient warning and earlier failures/reruns remain documented.
+The prior cleanup record is unchanged: no disposable DBs/roles or temporary
+PostgreSQL credential/helpers remain; automated tests never connected to
+careflow_ai and catalog counters matched. No new PostgreSQL connection was made
+for this Git/CI closeout.
+
+Post-CI updates to this ticket, README.md, docs/PROGRESS.md and the Phase 2 plan
+are documentation-only and intentionally uncommitted pending separate owner
+commit/push approval. No second commit/push or Phase 3 work authorized/performed.
+
+
+## 2026-10-18 — separate documentation closeout approved
+
+Owner approved one documentation-only commit/push, with message
+`docs: close out phase 2 clinic operations`, covering only this ticket, README,
+PROGRESS and the Phase 2 plan. Verified the saved closeout patch against those
+four files and retained implementation-SHA CI/local-regression evidence. Current
+approval wording was reconciled without changing the implementation, completed
+criteria, test results or remaining limitations. No additional commit, feature
+work or Phase 3 is authorized. Exact documentation SHA/hosted result are recorded
+in the final handoff and ignored Git evidence after execution.
