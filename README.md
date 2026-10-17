@@ -75,7 +75,7 @@ Remove-Variable taskDatabasePassword
 .venv\Scripts\python -m alembic current
 ```
 
-Expected revision after Phase 2 Ticket 01: `0004_clinic_catalog`. An existing Ticket 03 database at `0001_vector` needs the explicit upgrade above; `/ready` returns 503 until it is upgraded. Migrations require permission to install extensions (normally the local administrator for this extension). Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
+Expected revision after Phase 2 Ticket 02: `0005_scheduling`. An older database needs the explicit upgrade above; `/ready` returns 503 until upgraded. Migrations require permission to install vector and PostgreSQL's bundled btree_gist extension. Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
 
 ```sql
 CREATE ROLE careflow_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
@@ -229,7 +229,7 @@ Ticket 07 verification on 2026-10-16: complete Phase 1 infrastructure gate **pas
 
 ## Public clinic catalog (Phase 2 Ticket 01)
 
-After upgrading explicitly to `0004_clinic_catalog` and loading the base clinic
+After upgrading explicitly to current head and loading the base clinic
 fixtures, an operator can load the synthetic catalog using their local operator
 `DATABASE_URL`:
 
@@ -274,3 +274,67 @@ and 20 existing regressions). PostgreSQL 17.11 cleanup audits found no leftover
 disposable databases/roles; temporary credentials/helpers were removed.
 The persisted HTTP walkthrough ran through the in-process ASGI API. Hosted CI
 was not run for these uncommitted changes; see the ticket/progress evidence.
+
+## Schedules and availability (Phase 2 Ticket 02)
+
+Use a local operator connection to a synthetic demo target, migrate explicitly
+to `0005_scheduling`, and load the existing clinic/catalog fixtures first.
+Tests always create disposable `careflow_test_<uuid>` databases; never use
+`careflow_ai` for test runs. No schedules or slots are silently seeded by GETs
+or fixture loading.
+
+Save a synthetic schedule JSON file (adjust effective dates for the current
+Karachi date). IDs below refer to Synthetic Doctor One and an example schedule:
+
+```json
+{"id":"00000000-0000-4000-8000-000000000801","expected_version":0,"weekday":6,"local_start":"09:00","local_end":"10:00","effective_from":"2026-10-18","effective_to":"2026-11-15"}
+```
+
+```powershell
+.venv\Scripts\python -m careflow.schedule_operator schedule --doctor-id 00000000-0000-4000-8000-000000000201 --input schedule.json --confirm-synthetic-schedules
+.venv\Scripts\python -m careflow.schedule_operator generate --doctor-id 00000000-0000-4000-8000-000000000201 --confirm-synthetic-schedules
+```
+
+Generation covers today plus 29 Karachi calendar dates and excludes already
+started slots. Repeating generation is harmless; it creates no duplicate or
+overlapping intervals. There is no scheduler. Maintenance requires the current
+`expected_version` (0 creates, successful maintenance increments to 1, 2, ...).
+To recover current versions, the trusted local operator can inspect the relevant
+schedule/exception row using their normal PostgreSQL administration client.
+Edits atomically invalidate affected slots; explicit generation restores eligible
+slots with incremented versions. Overnight windows are split across weekdays;
+use `24:00` for the exclusive midnight ending a local date.
+
+For a blocking exception use action `exception` with JSON `{id, expected_version,
+start_at, end_at, reason}`; timestamps require explicit offsets and a range within
+the same 30-date horizon. `deactivate-schedule` / `deactivate-exception` take
+`{id, expected_version}`. Input files are bounded to 16 KiB; generate takes no
+payload. Commands refuse unsafe targets, missing confirmation and stale schema
+or versions. No public schedule-write route or staff authentication is added.
+
+Extend API-role read grants through the trusted local operator connection:
+
+```sql
+GRANT SELECT ON public.doctor_schedules, public.schedule_exceptions, public.slots TO careflow_app;
+```
+
+Keep scheduling mutation privileges off the API role. Availability is a public
+persisted read, for example (adjust dates to the approved horizon):
+
+```powershell
+Invoke-RestMethod 'http://127.0.0.1:8000/doctors/00000000-0000-4000-8000-000000000201/slots?start_at=2026-10-18T00:00:00%2B05:00&end_at=2026-10-19T00:00:00%2B05:00&limit=20'
+```
+
+Responses include local timestamps, UTC offsets, `Asia/Karachi`, stable slot IDs
+and versions. Empty results stay empty. See API_CONTRACTS.md for exact filters,
+scope, interval semantics and the fail-closed Ticket 03 integration boundary.
+
+Ticket 02 verification on 2026-10-17: **156 full-suite tests passed**, including
+47 real PostgreSQL tests (20 Ticket 02), zero failures/errors/skips. Formatting,
+lint, strict types and dependency checks passed; standards/spec reviews had zero
+findings. Final cleanup found no disposable databases/roles; temporary credentials
+and helpers were removed. A failed aggregate safety-counter check was investigated
+read-only: application-table update counters were zero, and the delta matched
+observed background catalog auto-analysis. See the ticket/progress for exact
+evidence and limits. No main application data/schema writes, hosted CI run,
+commit or push occurred.

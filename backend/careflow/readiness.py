@@ -19,8 +19,8 @@ def database_is_ready() -> bool:
                 return bool(
                     connection.scalar(
                         text(
-                            "SELECT EXISTS (SELECT 1 FROM pg_extension "
-                            "WHERE extname = 'vector')"
+                            "SELECT count(*) = 2 FROM pg_extension "
+                            "WHERE extname IN ('vector', 'btree_gist')"
                         )
                     )
                 )

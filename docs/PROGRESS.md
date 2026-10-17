@@ -379,3 +379,135 @@ is no Ticket 01 blocker. Next: owner reviews the scoped code/documentation diff;
 each commit and push needs explicit approval. Recommend Ticket 02 only in a
 fresh session with separate approval and its dependent D03 choice resolved.
 Ticket 02 has not been started.
+
+## 2026-10-17 — Phase 2 Ticket 02 started; local test credential required
+
+Verified clean master at e7bd30632e70107abb9f94b8c3be97ef2dcb368c, committed
+Ticket 01 and matching live origin/master via read-only ls-remote. Fetch was
+blocked by sandbox FETCH_HEAD permissions; no Git metadata was changed. Read
+scoped ticket/plan/progress/decisions and catalog/database/test interfaces.
+Owner explicitly approved D03 and the scheduling service/operator CLI, public
+HTTP and PostgreSQL integrity/concurrency seams. Recorded D03 in DECISIONS.md;
+D04/D12 remain pending, with no booking, commit or push authorized.
+
+Implemented the first calendar-policy and HTTP validation/serialization slices.
+Red tests initially failed for missing modules/functions; green checkpoint:
+22 offline tests passed (schedules-offline-checkpoint.xml). Covers Karachi
+midnight/weekday/effective dates, started-slot exclusion, horizon and input bounds,
+ambiguous/nonexistent local times, invalid same-day windows and local offsets.
+Corrected an initially wrong boundary-test date (the 30th date is included).
+Scoped format/lint and strict types for these four files passed after fixing an
+import-order issue. Full types are not passing yet: the new PostgreSQL test
+references the not-yet-implemented schedule_operator module.
+
+One authored PostgreSQL operator-generation-to-HTTP walkthrough test explicitly
+skipped because TEST_DATABASE_URL is unset. It is not database verification.
+Persistence, mutations, overlap/concurrency protection and persisted availability
+remain unimplemented. availability_api.py is partial and its handler raises
+NotImplementedError; do not deploy this checkout. No migration/schema-head
+change or database connection occurred; careflow_ai was not accessed or modified.
+No AI change, model-backed eval, hosted CI, commit or push occurred.
+
+Ticket 02 is needs-info, with only D03 recording verified. Owner action: run
+ignored test-results/configure-schedules-tests.ps1 locally, enter the password
+only at its secure prompt and reply ready. No credential file existed at this
+checkpoint. Resume PostgreSQL red/green implementation with the ignored runner,
+complete all applicable checks and required review, verify disposable database/
+role cleanup and remove temporary credential/helpers. Do not start Ticket 03.
+
+## 2026-10-17 — Phase 2 Ticket 02 resolved; all local checks passed
+
+Owner completed the secure local credential prompt and authorized continuation.
+Completed the approved schedules/availability slice on master at e7bd30632e70107abb9f94b8c3be97ef2dcb368c,
+without commit/push. Added migration/readiness head 0005_scheduling, effective
+weekly schedules, blocking exceptions, persisted deterministic 30-minute slots,
+database interval/reference/overlap constraints, resource versions and confirmed
+bounded operator maintenance/generation. Reused the existing fixed clinic,
+fixture target guard/advisory lock, synchronous SQLAlchemy and FastAPI transport.
+No Docker, Python dependency, staff HTTP writes, appointment storage, frontend or
+AI surface was introduced.
+
+Doctor-before-resource/slot locking serializes edits/generation; maintenance
+invalidates affected slots atomically, advances versions and rejects stale edits.
+Explicit generation alone restores eligible slots. Approved Karachi calendar
+horizon and offset-aware half-open queries are implemented. Same-day windows
+support exclusive 24:00 for lossless midnight splits. Public GETs expose only
+persisted active future unblocked slots, scoped to eligible synthetic clinic/
+doctor/specialty resources, with local offsets/timezone. Updated README,
+API/architecture, D03 implementation rationale, phase plan and ticket.
+
+Verification actually executed:
+
+- Focused PostgreSQL Ticket 02 suite: **20 passed in 115.27s**, zero failures,
+  errors/skips (schedules-postgres-complete.xml). Independent connections cover
+  generation/generation, edit/generation, exception/generation, competing stale
+  edits and direct shifted-overlap inserts. Other cases verify constraints,
+  complete rollback, restricted read-only role, foreign clinic/inactive/missing
+  resources, horizon boundaries/pages, midnight, fixture preservation, repeated
+  migration/readiness and an actual CLI-to-ASGI HTTP walkthrough.
+- Full `.venv\Scripts\python -m pytest backend/tests backend/integration_tests
+  ci_tests evals/tests -q -rs --tb=short
+  --basetemp=test-results/schedules-final-tmp
+  --junitxml=test-results/schedules-final.xml`: **156 passed in 498.39s**,
+  zero failures/errors/skips, independently parsed from JUnit: **77 unit/HTTP +
+  47 PostgreSQL + 15 serial CI + 17 offline eval-infrastructure**. Twenty new
+  PostgreSQL cases are included in 47, not added twice. Earlier missing-credential
+  skips are superseded. Actual real checker subprocesses ran in the CI tests.
+- Ruff format/lint, strict mypy across 50 files and pip check: **passed**.
+  Code/diff checks passed; known Starlette TestClient deprecation remains
+  non-failing. Early scoped formatting/type/input issues were corrected.
+- Required implement-skill code review: read-only standards and spec reviewers
+  each reported **zero findings** against the baseline and new files.
+  No model-backed eval or hosted CI run; seven behavioral cases remain pending.
+
+The full-run wrapper exited 1 **after pytest passed**, because the initial
+aggregate audit saw careflow_ai tup_updated 73→91. No disposable databases or
+temporary roles remained. Retained the failure and investigated without reset
+or writes: forced-read-only main catalog sessions confirmed **zero cumulative
+application-table updates** and all **91 local updates in system catalogs**
+(pg_operator 45, pg_statistic 43, pg_type 3). pg_database was auto-analyzed at
+**10:31:42 Asia/Karachi**, during the run; its **18 pg_statistic rows** match the
+18-update delta. This is consistent with PostgreSQL's documented automatic
+ANALYZE/planner-statistics behavior, not application changes:
+[pg_statistic](https://www.postgresql.org/docs/17/catalog-pg-statistic.html),
+[automatic statistics maintenance](https://www.postgresql.org/docs/17/routine-vacuuming.html#VACUUM-FOR-STATISTICS).
+Owner confirmed no concurrent database task. The audit conclusion is bounded
+catalog/source evidence, not a before/after content snapshot.
+
+Final read-only maintenance safety audit **passed**: PostgreSQL 17.11; no leftover
+test databases/roles; main OID 16388 and inserted/deleted counters 1498/21 retained;
+updated count stable at 91. Tests/migrations/fixture operations used disposable
+careflow_test_<uuid> targets only; the later main inspection read catalog counters
+with transaction_read_only=on, never application rows. No main application
+data/schema mutation or statistics reset was executed. Ignored
+schedules-final-safety.json and schedules-verification.json preserve both the
+initial wrapper failure and the passing follow-up evidence.
+
+Removed and verified absence of all seven temporary credential/helper files,
+including encrypted credential and read-only investigation scripts. Parent
+DATABASE_URL/TEST_DATABASE_URL unset. No password/connection URL was logged,
+committed or placed in reports. Nonsecret XML/JSON evidence remains ignored.
+
+All **seven** Ticket 02 criteria verified; status **resolved**. Actual booked-state
+enforcement/exclusion and proposal invalidation are deferred to 03, not passed
+as booking tests: the current appointment-table guard fails closed pending that
+integration. Ticket 03 must preserve doctor-before-slot locks and revalidate
+doctor/resource versions. D04/D12 remain pending. Next: owner reviews scoped
+code/documentation; each commit and push requires explicit approval. Recommend
+Ticket 03 only in a fresh, separately approved session after its decisions resolve.
+
+## 2026-10-17 — Ticket 02 commit/push approval and final scope review
+
+Owner explicitly approved commit `feat: implement schedules and availability`
+and normal push to origin/master, conditional on a clean staged review. Reviewed
+the 20 Ticket 02 implementation/migration/test/documentation paths, the 156-pass
+JUnit evidence (47 PostgreSQL; zero failures/errors/skips), all seven checked
+criteria, approved D03 and still-pending D04/D12. Preserved the original audit
+failure, read-only investigation and bounded safety conclusion above. Credentials,
+temporary helpers, generated evidence and unrelated files are excluded from the
+approved staged manifest. No product source changed in this Git handoff.
+
+Commit/push and exact-SHA hosted CI results are recorded in the session handoff
+and ignored test-results/schedules-git-ci.json after execution; this entry records
+the precommit review, not a claim that a pending push or hosted run has passed.
+No Ticket 03 or booking implementation is authorized.

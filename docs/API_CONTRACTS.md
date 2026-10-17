@@ -22,7 +22,7 @@ Approved explicit confirmation flow: `POST /appointment-proposals` or correspond
 | `POST /auth/logout` | Same-origin browser | Implemented: valid sessions require matching CSRF; revokes session and clears cookie, 204. Retrying after revocation/expiry is harmless, 204; origin is still required. |
 | `GET /specialties` | Public | Implemented: active specialties in the fixed demo clinic; bounded pagination and clinic/city filters |
 | `GET /doctors` | Public | Implemented: active doctors and specialties; specialty UUID and clinic/city filters; exact consultation fee |
-| `GET /doctors/{id}/slots` | Public | Derived available, timezone-aware, bounded date range; never invent |
+| `GET /doctors/{id}/slots` | Public | Implemented in Ticket 02: persisted active future slots, required offset-aware bounded range; GET never generates |
 | `POST /appointment-proposals` | Patient | Validate owned actor, actual slot and current summary; no booking mutation |
 | `POST /appointments` | Patient | Confirm proposal + idempotency key; atomic booking, persisted ID |
 | `GET /me/appointments` | Patient | Own records only, bounded pagination |
@@ -65,6 +65,63 @@ other clinics are omitted. Detail/fee lookups share those restrictions and retur
 generic 404 `NOT_FOUND`. Malformed IDs/filters return safe 422 `VALIDATION_ERROR`;
 database/configuration failures return 503 `CATALOG_UNAVAILABLE`. Errors use the
 existing correlation-ID envelope without SQL, credentials or private associations.
+
+### Schedules and public availability (Phase 2 Ticket 02)
+
+`GET /doctors/{id}/slots` requires ISO `start_at` and `end_at` with explicit UTC
+offsets (including `Z`). Offset-free dates/timestamps and numeric epochs are
+rejected. The half-open interval `[start_at, end_at)` must be positive and lie
+within today's Karachi midnight through midnight after the next 29 dates.
+Only whole slots contained in the requested interval are returned, excluding
+already-started slots. Optional `clinic_id` only narrows the fixed demo-clinic
+scope. `limit` defaults to 20 (1–100), `offset` to 0 (0–10000); unknown filters
+are rejected. Ordering is start instant then UUID.
+
+Response: `{items, limit, offset, timezone: "Asia/Karachi"}`. Each slot exposes
+`{id, clinic_id, doctor_id, start_at, end_at, version, timezone}`. Timestamps are
+local ISO instants with `+05:00`; storage uses UTC instants. Slots are persisted
+30-minute capacity-one resources. Empty, missing, inactive or other-clinic doctors
+produce an empty 200 page; inactive specialties also hide their doctors' slots.
+Blocking exceptions and inactive source schedules/slots are excluded. No exception
+reason, patient field or internal schedule definition is public. Invalid input
+returns safe 422 `VALIDATION_ERROR`; unavailable persistence returns safe 503
+`CATALOG_UNAVAILABLE`, using the existing correlation envelope.
+
+No schedule HTTP mutation endpoint or staff authority exists. Local operator CLI
+`python -m careflow.schedule_operator` accepts `schedule`, `exception`,
+`deactivate-schedule`, `deactivate-exception` and `generate`, a required
+`--doctor-id`, bounded JSON `--input` for maintenance, and explicit
+`--confirm-synthetic-schedules`. The existing local synthetic-target guard and
+current migration head are required. API database roles get SELECT only on
+scheduling tables, never scheduling writes or doctor UPDATE authority.
+
+Schedule input: `{id, expected_version, weekday, local_start, local_end,
+effective_from, effective_to}`. UUIDs are operator supplied; version 0 creates,
+subsequent edits require the current version. Weekdays are Monday=0–Sunday=6;
+effective dates are inclusive. Windows use minute-precision Karachi wall times,
+contain whole 30-minute intervals and stay within one local date. `local_end`
+may be `"24:00"`, the exclusive midnight ending that date; overnight schedules
+require separate weekday definitions. Ambiguous/nonexistent local times fail
+generation with full rollback. Conflicting effective windows are rejected.
+
+Exception input: `{id, expected_version, start_at, end_at, reason}` with explicit
+offsets, positive bounded horizon interval and a 1–160 character synthetic reason.
+Any intersection blocks a slot; adjacent endpoints do not intersect. Deactivation
+input: `{id, expected_version}`. Each successful maintenance command increments
+the resource version and `doctors.schedule_version`; invalidated slots increment
+their own versions. Edits invalidate slots sourced from that schedule; exceptions
+invalidate intersecting active slots. Removal never automatically restores slots.
+Explicit generation inserts/reactivates eligible slots only, using stable IDs;
+reactivation increments the slot version, while an unchanged repeat changes none.
+
+Lock order is fixture advisory lock `48405004`, doctor row, schedule/exception,
+then affected slots, all in one transaction. Ticket 03 must use the compatible
+doctor-before-slot order, revalidate resource versions and add actual booked-state
+checks before invalidation and active-appointment exclusion in availability.
+Until integrated, detecting `public.appointments` fails closed: operator writes
+refuse and availability returns 503. This is a protective boundary, not tested
+booking functionality. Reject changes invalidating booked appointments; never
+silently move them. Proposal expiry/idempotency and booking schema remain D04/D12.
 
 ### Patient-session transport and errors
 

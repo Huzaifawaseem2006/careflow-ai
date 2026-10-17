@@ -1,6 +1,6 @@
 # Proposed architecture
 
-Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. FastAPI liveness, database configuration, readiness and initial Alembic migration are implemented and verified with local PostgreSQL 17.11 / pgvector 0.8.7. Patient sessions and the Phase 2 Ticket 01 public catalog are implemented as described below; remaining domain modules are planned. Detailed schema/API choices still require task-level review. PRD remains authoritative, with the owner-approved Docker-free amendment dated 2026-10-15.
+Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. FastAPI liveness, database configuration, readiness and initial Alembic migration are implemented and verified with local PostgreSQL 17.11 / pgvector 0.8.7. Patient sessions, the Phase 2 Ticket 01 public catalog and Ticket 02 scheduling are implemented as described below; remaining domain modules are planned. Detailed schema/API choices still require task-level review. PRD remains authoritative, with the owner-approved Docker-free amendment dated 2026-10-15.
 
 ## Minimal structure and boundaries
 
@@ -22,7 +22,7 @@ Group the PRD logical modules to avoid excessive scaffolding:
 
 Routers validate transport inputs; services enforce auth and business rules; persistence code cannot bypass those rules. Tool adapters do not call routers or arbitrary SQL. Cross-module writes run in an explicit shared transaction. Use synchronous SQLAlchemy initially; keep blocking database work off the async model-call event loop. Reassess only with measured need.
 
-Ticket 03 uses a process-environment `DATABASE_URL` with the `postgresql+psycopg` driver, bounded connect/statement timeouts and disposable connections. `GET /ready` verifies the expected Alembic revision and installed vector extension; it does not mutate or migrate. `GET /health` remains independent process liveness. Apply migrations explicitly with an operator role able to install the extension; application readiness only reads. The first migration enables `vector` in `public`, without domain tables or embedding dimensions. Database failure responses and Alembic connection failures omit driver exception details and credentials.
+Phase 1 Ticket 03 uses a process-environment `DATABASE_URL` with the `postgresql+psycopg` driver, bounded connect/statement timeouts and disposable connections. `GET /ready` verifies the expected Alembic revision and installed vector/btree_gist extensions; it does not mutate or migrate. `GET /health` remains independent process liveness. Apply migrations explicitly with an operator role able to install extensions; application readiness only reads. The first migration enables `vector` in `public`, without domain tables or embedding dimensions. Database failure responses and Alembic connection failures omit driver exception details and credentials.
 
 ## Database sketch: PRD entities plus explicit proposals
 
@@ -32,7 +32,7 @@ Ticket 04 adds `clinics` settings (UUID, name, city, timezone, currency, synthet
 
 Retain the PRD users, patients, staff, clinics, specialties, doctors, schedules, exceptions, appointments, knowledge documents/chunks, conversations/messages, handoffs and audit entities. Seed one fictional clinic while retaining `clinic_id` authorization scope. A staff operator is a permission set rather than implicit access for all staff. Initial patient history is appointments only.
 
-Approved persisted `slots`: 30-minute intervals generated deterministically for a bounded horizon from schedules and blocking exceptions. Propose unique `(doctor_id, start_at)` and a positive interval check. Fixed, non-overlapping slots are a precondition of this design; schedule edits must never create overlaps or silently move booked appointments. Capacity is one patient per slot; derive booked availability from active appointments rather than duplicating a booking flag. Mark invalidated unbooked slots unavailable. Define the generation horizon and DST policy explicitly, even though Karachi currently has no DST transition.
+Approved persisted `slots`: 30-minute intervals generated deterministically for a bounded horizon from schedules and blocking exceptions. Ticket 02 implements unique `(doctor_id, start_at)`, exact finite 30-minute intervals and an active-interval GiST exclusion constraint; unique starts alone cannot prevent shifted overlaps. Capacity is one patient per slot; Ticket 03 derives booked availability from active appointments rather than adding a booking flag. Schedule edits must never silently move booked appointments. D03 horizon and local-time/edit policy were approved on 2026-10-17; see DECISIONS.md and the implemented API contract.
 
 Proposed appointment states: `booked`, `cancelled`; reschedule updates the owned appointment's slot with an audit event. Partial unique index on `slot_id` for `booked` appointments protects capacity; cancelled history remains. Preserve accepted fee/currency snapshot so later catalog edits do not rewrite the confirmed price. These are proposed additions, not existing fields.
 
@@ -55,6 +55,29 @@ caller filters cannot widen scope. Responses allowlist public fields. The local
 confirmed catalog loader is insert-only, atomic and serialized with fixture
 writers; fixture reset preserves the catalog and authentication data. No staff
 HTTP writes, scheduling or booking storage is introduced.
+
+Phase 2 Ticket 02 advances head to `0005_scheduling`, adding effective weekly
+`doctor_schedules`, blocking `schedule_exceptions`, persisted `slots` and doctor
+schedule versions. Composite foreign keys keep clinic/doctor/source references
+consistent. PostgreSQL's bundled `btree_gist` supports UUID/weekday equality in
+exclusion constraints for active schedule windows and slot intervals. Readiness
+requires both vector and btree_gist; explicit migrations install them. No Python
+dependency, worker or framework is added.
+
+Confirmed local operator maintenance uses the fixture advisory lock then doctor
+row lock, resource version checks and transactional invalidation. Generators use
+the same order and deterministic doctor/start UUIDs. New slots have version 1;
+invalidation/reactivation increments versions, preserving references to stale
+resources. Availability only reads persisted active future unblocked slots in the
+fixed synthetic clinic. The approved horizon is today plus 29 Karachi dates;
+generation is explicit and has no scheduler. API roles receive read-only grants.
+
+Ticket 03 must preserve doctor-before-slot locking, reject edits invalidating
+booked appointments, exclude active bookings from availability and revalidate
+doctor/resource versions at confirmation. A fail-closed appointment-table guard
+prevents using Ticket 02 inventory once appointment storage appears without that
+integration. No appointment, proposal, idempotency or audit schema is implemented
+here; D04/D12 remain pending.
 
 ## Transaction design
 

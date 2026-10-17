@@ -21,7 +21,7 @@
 | --- | --- | --- | --- |
 | D01 | Emergency locale language | Clinic location is Karachi/`Asia/Karachi`/PKR. Approve exact local escalation wording and any emergency contact reference through D11. | Safety wording |
 | D02 | Patient identity lifecycle | Approved 2026-10-16: pre-provisioned synthetic patients, local password hashes, operator-only account creation/password reset, no public registration or email recovery. | Resolved for Ticket 05 demo |
-| D03 | Slot horizon and DST handling | 30-minute persisted slots and 24-hour change cutoff approved. Choose generation horizon and schedule-edit behavior; use clinic timezone. | Phase 2 |
+| D03 | Slot horizon and DST handling | Approved 2026-10-17 for Phase 2 Ticket 02; see the scheduling decision below. The 24-hour appointment-change cutoff remains separate. | Resolved for Ticket 02 |
 | D04 | Proposal expiry / retry retention | Actor/action-bound proposals and fee revalidation approved. Choose expiry, stale-state behavior and idempotency retention without weakening invariants. | Phase 2 |
 | D05 | Handoff scope | Authenticated patient handoff approved; guest handoff deferred. Define staff queue permission and consent/retention. | Chat/handoff |
 | D06 | Corpus details | Immutable admin-approved versions approved. Choose synthetic source set, reviewer and withdrawal policy. | Phase 4 |
@@ -41,7 +41,7 @@ Tickets 01–02 were individually approved and are complete. Remaining decisions
 - Cancel/reschedule are P0, but tool list omits propose/confirm reschedule. Add only after contract approval.
 - Section 8 exposes mutation routes without proposal routes or proof transport. A model-generated `confirmed=true` is insufficient; bind a server proposal to an actual user event.
 - Single `role` does not fully express clinic scope or handoff-operator access. Define permission mapping without adding enterprise RBAC.
-- Slot duration is now 30 minutes, with capacity one. Generation horizon, overlapping schedule edits, DST behavior and status transitions remain unspecified. Do not assume unique start time prevents arbitrary interval overlap.
+- Slot duration is 30 minutes, with capacity one. D03 now defines horizon, timezone and schedule-edit rules; Ticket 02 uses exclusion constraints because unique start times cannot prevent shifted overlap. Appointment status transitions remain for Ticket 03/D12.
 - Appointment idempotency key alone cannot cover all mutations. Define actor/operation scoping, payload mismatch and retry retention.
 - Doctor filters include location, but initial clinic schema has no explicit location field. For one-clinic MVP filter by clinic ID; decide whether free-text location is actually needed before adding fields.
 - Source links can be invalid or unsafe; use stable backend citation endpoints, never model-invented URLs. Decide knowledge clinic/access scope and effective-version conflicts.
@@ -125,3 +125,38 @@ References checked during implementation: [argon2-cffi API](https://argon2-cffi.
 ## Ticket 07 regression gate semantics — 2026-10-16
 
 Reuse the existing foundation checker, serial CI regressions, disposable PostgreSQL suite and offline inventory. Required test skips or missing evidence block the Phase 1 gate (exit 2); failures take precedence (exit 1). Every invocation writes fresh companion evidence and records command arrays/revision/dirty state. This preserves the approved Phase 1 infrastructure boundary: the seven unexecuted agent cases remain pending, never passing behavioral evidence. Real-path integration remains required before Phase 3 AI behavior; no live-model or production-security claim follows from Phase 1 success. Hosted CI is verified separately for an exact SHA and cannot replace local PostgreSQL evidence. No architecture, dependency, clinical-operation or Git approval boundary changes.
+
+## Phase 2 Ticket 02 scheduling — approved 2026-10-17
+
+The owner approved D03 and the scheduling service/operator CLI, public HTTP,
+and PostgreSQL integrity/concurrency test seams. Generate persisted capacity-one
+30-minute slots for today through the next 29 calendar dates in Asia/Karachi,
+excluding slots already started. Generation is explicit, repeatable and operator
+triggered; no scheduler or automatic regeneration on edit. The trade-off is a
+small bounded inventory requiring operator refresh.
+
+Availability requires offset-aware start_at/end_at, half-open intervals, bounded
+pagination and a range within that same horizon; reject invalid ranges. Weekly
+schedules use Asia/Karachi wall times and same-day windows (split overnight
+windows across weekdays). Persist UTC instants and return local timestamps with
+offsets and the timezone name. Reject ambiguous/nonexistent local times instead
+of silently shifting them.
+
+Confirmed schedule edits/exceptions atomically invalidate affected unbooked
+slots and increment relevant versions. Protect booked appointments from changes
+that would invalidate them. Ticket 02 establishes compatible locking/version
+and edit contracts; Ticket 03 completes actual appointment integration and tests
+once appointment storage exists. D04 and D12 remain pending. This approval
+authorizes Ticket 02 implementation only, not booking, commit or push.
+
+Implementation within this approval uses PostgreSQL's bundled btree_gist for
+database-enforced active interval exclusions, including shifted start times.
+Weekly-rule exclusion conservatively rejects rules sharing a doctor/weekday and
+intersecting effective-date/local-time ranges; consolidate rules or split their
+effective dates rather than relying on empty recurrence intersections. This keeps
+the small operator workflow simple and safe. Same-day windows may end at the
+exclusive `24:00` boundary so split overnight schedules lose no half-hour.
+Fixture advisory lock then doctor/resource/slot locks serialize maintenance with
+generation; doctor, schedule/exception and affected slot versions carry staleness
+into the later proposal contract. These implementation details do not select
+proposal expiry, booking schema or D04/D12 policy.

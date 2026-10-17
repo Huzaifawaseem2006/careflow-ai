@@ -6,6 +6,7 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     ForeignKeyConstraint,
+    Integer,
     Numeric,
     String,
     Table,
@@ -34,6 +35,9 @@ doctors = Table(
     Column("name", String(120), nullable=False),
     Column("consultation_fee", Numeric, nullable=False),
     Column("active", Boolean, nullable=False),
+    Column("schedule_version", Integer, nullable=False, server_default="1"),
+    CheckConstraint("schedule_version > 0", name="ck_doctors_schedule_version"),
+    UniqueConstraint("clinic_id", "id", name="uq_doctors_clinic_id"),
     ForeignKeyConstraint(
         ["clinic_id", "specialty_id"],
         ["specialties.clinic_id", "specialties.id"],
