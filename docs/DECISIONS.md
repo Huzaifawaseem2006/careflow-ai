@@ -5,13 +5,13 @@
 ## Approved MVP decisions
 
 - One fictional clinic in Karachi, Pakistan; `Asia/Karachi` timezone, PKR fees, English first. Arabic and Urdu are post-MVP.
-- Fixed stack: FastAPI modular monolith; PostgreSQL/pgvector; SQLAlchemy 2.x, Pydantic v2, Alembic; Next.js, TypeScript, Tailwind; OpenAI SDK with explicit tool calling and structured outputs. One bounded orchestrator.
+- Fixed stack: FastAPI modular monolith; PostgreSQL/pgvector; SQLAlchemy 2.x, Pydantic v2, Alembic; Next.js, TypeScript, Tailwind; Anthropic Claude Messages API with explicit strict tool calling and sequential execution (owner-selected replacement for OpenAI, 2026-10-18). One bounded orchestrator with a small provider interface.
 - Server-managed sessions using secure HttpOnly cookies and appropriate CSRF protection; no public staff registration. D02 uses pre-provisioned synthetic patient accounts with local passwords and operator-only creation/reset; no public registration or email recovery (approved 2026-10-16).
 - Persisted 30-minute appointment slots, capacity one; database integrity, transactional writes and idempotency. Cancellation and rescheduling allowed until 24 hours before the appointment.
 - Explicit frontend confirmation for state-changing actions using backend-issued expiring proposals bound to authenticated actor and exact operation. Revalidate fees before booking; changed fees require fresh confirmation.
 - Admin-approved immutable versioned knowledge documents. Authenticated patient handoffs initially.
-- Minimal conversation persistence with a **proposed** 30-day synthetic demo retention period; duration and deletion exceptions remain for final approval.
-- Configurable OpenAI model and evaluation budget; native local services and PostgreSQL for the current MVP. Docker/Compose deployment is deferred (owner-approved change, 2026-10-15). No clinical diagnosis, prescribing or definitive triage.
+- D10's disclosed PostgreSQL history, bounded context, serialized turns and 30-day synthetic-history direction were reaffirmed on 2026-10-18; concrete guest ownership/transfer and deletion/exception mechanics still require review before persistence.
+- Configurable Claude model and cumulative USD 5 Phase 3 live-eval ceiling, with explicit approval before each paid run (2026-10-18); native local services and PostgreSQL for the current MVP. Docker/Compose deployment is deferred (owner-approved change, 2026-10-15). No clinical diagnosis, prescribing or definitive triage.
 - Establish evaluation infrastructure and a versioned synthetic dataset during Phase 1, before AI behavior. Deterministic security assertions; mocked and live runs labeled separately.
 - `PRD.md` is authoritative; its Docker requirements were narrowly amended with explicit owner approval on 2026-10-15. Other PRD requirements are preserved. `AGENTS.md` carries the owner's current workflow and safety rules, including the approved accelerated workflow below; local issue tracking, triage and domain-doc pointers remain in place.
 
@@ -25,10 +25,10 @@
 | D04 | Proposal expiry / retry retention | Actor/action-bound proposals and fee revalidation approved. Choose expiry, stale-state behavior and idempotency retention without weakening invariants. | Phase 2 |
 | D05 | Handoff scope | Authenticated patient handoff approved; guest handoff deferred. Define staff queue permission and consent/retention. | Chat/handoff |
 | D06 | Corpus details | Immutable admin-approved versions approved. Choose synthetic source set, reviewer and withdrawal policy. | Phase 4 |
-| D07 | Model, embeddings and eval budget | Configurable model/budget approved; select actual IDs, embedding setup and budget after capability check. No live run or price claim yet. | Phase 3 live eval |
+| D07 | Model, embeddings and eval budget | Owner selected Anthropic Messages and cumulative USD 5 live-eval ceiling on 2026-10-18; each paid run still needs approval. Initial configurable claude-sonnet-5-5 selected after official-doc capability/cost review; SDK pin/account access remain to be verified in implementation. Embeddings remain Phase 4. | SDK/schema verification in 01; paid consent before any live run |
 | D08 | Hosted demo | Native local setup for MVP; Docker/Compose deferred by owner on 2026-10-15. Select host, TLS and protected demo accounts before publishing. | Phase 7 |
 | D09 | Staff scope | Arabic and Urdu post-MVP. Minimal appointments/handoff queue for P0 proposed; choose detailed staff CRUD scope. No reminders/MCP for first demo. | Frontend scope |
-| D10 | Retention and deletion | Proposed 30-day synthetic conversation retention, with deletion behavior, handoff/audit exceptions and disclosure still to decide. | Persistence for chat |
+| D10 | Retention and deletion | Owner reaffirmed disclosed PostgreSQL history, bounded context, serialized turns and 30-day direction on 2026-10-18. Guest ownership/transfer, deletion trigger/timing and exception mechanics were not specified in the proposal; review before storing content. No new handoff/audit exception. | Phase 3 Ticket 02 persistence |
 | D11 | Clinical wording review | Owner names appropriate reviewer and approves locale-specific escalation text before demo; no clinical validation claim. | Safety eval/release |
 | D12 | Schema additions and API changes | Proposals/idempotency tables, fee snapshot, session storage as applicable; reschedule tools/proposal endpoints described in contracts. | Schema/API implementation |
 
@@ -232,3 +232,55 @@ monotonic appointment version prevents stale proposals surviving moves back to a
 previous slot. Identity and cancelled rows remain immutable; downgrade refuses
 recorded change history rather than discarding it. Reused existing infrastructure
 gate/strict evidence semantics; no new workflow engine or dependency was needed.
+
+## Phase 3 provider and ticket planning — 2026-10-18
+
+Owner explicitly selected Anthropic Claude Messages API instead of OpenAI and
+retained the six-ticket structure. This supersedes the earlier provider-specific
+stack choice, not the domain/security contracts. Amend current PRD/architecture
+provider wording narrowly; preserve historical Phase 1/2 entries. Planning and
+ticket publication only are authorized in this session.
+
+Use a small provider interface and one Anthropic SDK adapter plus scripted test
+provider; isolate SDK calls, tool-use blocks and continuation while keeping
+orchestration, schemas, services and eval graders independent where practical.
+This seam is justified by explicit owner request and deterministic testing, not
+by speculative multi-provider routing. Strict custom tools execute sequentially.
+Separate user confirmation still calls existing authorized appointment services;
+ordinary model output receives no confirm capability or raw proposal proof.
+
+Selected initial configurable claude-sonnet-5-5 after official documentation
+review: active, described as fast, with base USD 2/input and USD 10/output per
+million tokens. Prefer this balance for multi-step workflows; Haiku offers lower
+cost, Opus higher cost/capability. CareFlow latency and quality remain unmeasured.
+SDK pin/schema compatibility and actual account access remain implementation
+checks. No silent model switch. Model docs restrict forced tool choice and
+sampling parameters; the adapter must verify supported settings rather than copy
+OpenAI request fields. Sources and capability caveats are in the Phase 3 plan.
+
+Owner retained a cumulative USD 5 Phase 3 live-eval ceiling, with explicit approval
+before each paid run. Key possession gives no paid authorization. Budget ledger,
+conservative pre-call reservation and usage accounting include retries and
+ambiguous charges. No live run, credentials inspection, SDK installation or
+provider-account configuration occurred during planning. Existing ignored env
+patterns suffice for server-only ANTHROPIC_API_KEY; no secret file was created.
+
+Official Anthropic commercial retention is generally within 30 days with service,
+contract, usage-policy and legal exceptions; account ZDR is unverified. Covered
+models have additional rules; compiled strict schemas may be cached. Do not infer
+an OpenAI store=false equivalent or provider deletion from local deletion.
+Disclose these separate boundaries and minimize synthetic context.
+
+Owner reaffirmed previously proposed D10 history/security boundaries, including
+disclosed PostgreSQL storage, bounded context, serialized turns and 30-day
+direction. Exact guest ownership/transfer, purge/deletion timing and exceptions
+were never specified in the earlier proposal. Ticket 02 must present concrete
+mechanics before storing content; these details are not silently approved here.
+Existing confirmation/security and Phase 4 RAG/Phase 5 UI/handoff boundaries stay
+unchanged. D01/D11 clinical wording/reviewer remains a release gate.
+
+Dependency graph remains 01 -> 02 -> 03 -> {04, 05} -> 06. Provider change affects
+adapter/protocol/retention/secret tests and live cost evidence, not those edges.
+No separate prefactor is needed because domain service seams already exist.
+Each implementation ticket, paid run, commit and push retains its own approval
+boundary. No Phase 3 implementation is authorized by ticket publication.

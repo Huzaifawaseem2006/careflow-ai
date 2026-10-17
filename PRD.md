@@ -55,7 +55,7 @@ English first, Arabic second phase; right-to-left UI and tests for faithful fact
 - Python FastAPI modular monolith for REST APIs, authorization, clinic business logic, LLM orchestration and RAG.
 - PostgreSQL for relational data; pgvector for document embeddings; SQLAlchemy 2.x and Alembic for persistence/migrations.
 - Pydantic for strict request, response and tool schemas; pytest, HTTPX and database integration tests.
-- OpenAI SDK with configurable model, strict structured tool schemas and explicit tool execution loop. Provider abstraction only if needed; avoid framework overhead at MVP.
+- Anthropic Claude Messages API with a configurable model, strict structured tool schemas and sequential explicit tool execution (owner-approved provider amendment, 2026-10-18). Isolate SDK calls and tool-use message handling behind a small provider interface; keep orchestration, domain adapters and evals independent where practical. No provider framework or second live provider is required.
 - Run FastAPI, Next.js and PostgreSQL locally without containers for the MVP (owner-approved amendment, 2026-10-15). Docker/Compose deployment is deferred and does not block development. Redis/worker only when background ingestion or reminders justify it.
 - No microservices, multiple agents, unrestricted SQL or separate vector database at MVP.
 

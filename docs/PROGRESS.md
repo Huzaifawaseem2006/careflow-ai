@@ -971,3 +971,96 @@ Staging is restricted to those four paths; exact staged checks, resulting SHA,
 normal-push synchronization/cleanliness and any new hosted run are retained in
 ignored Git evidence and reported in the final handoff, without another tracked
 post-commit edit. No Phase 3 or additional commit is authorized.
+
+## 2026-10-18 — Phase 3 planning and six local tickets
+
+Owner requested to-tickets planning only, then selected Anthropic Claude Messages
+API in place of OpenAI, retaining six tickets, strict/sequential tools, provider
+isolation, existing safety/confirmation/phase boundaries and a cumulative USD 5
+live-eval ceiling requiring explicit approval before paid runs. Read the invoked
+skill, local tracker/triage conventions, current Phase 3 plan, relevant PRD/
+architecture/API/safety/eval/decision context and actual service/harness seams.
+Starting branch master, clean tree, HEAD 5b98387 (docs: close out phase 2 clinic
+operations). Phase 2 completion evidence was read, not rerun or reclassified.
+
+Published six ready-for-agent planning tickets, each with scope/contracts,
+dependencies, objective acceptance, security/TDD/eval checks, exclusions and
+completion evidence. Dependency graph: 01 catalog chat/baseline -> 02 owned
+context/listing -> 03 booking review/confirmation -> independent 04 cancellation
+and 05 rescheduling -> 06 combined/live regression gate. Provider change alters
+acceptance criteria, not ticket count/edges. No standalone refactor/framework.
+
+Updated Phase 3 plan and added shared feature spec with requirement coverage.
+Narrowly amended current PRD/architecture provider wording and decision register;
+preserved Phase 2 implementation/history. Chosen initial configurable model is
+claude-sonnet-5-5, based on dated official Anthropic capability/latency/cost docs,
+with SDK pin/schema/account access verification left to implementation. Adapter
+owns SDK/protocol/continuation; orchestrator/services/graders remain independent.
+Raw proof/CSRF/cookies/retry keys stay outside provider context. Confirmation
+uses existing separate user endpoints and committed backend outcomes.
+
+Official commercial retention, covered-model and strict-tool docs were checked:
+general API retention is conditional (normally within 30 days, exceptions apply),
+not proof of this account's ZDR. Strict schemas can be cached. No store=false
+assumption, no claim local deletion deletes provider copies. Existing ignore
+patterns cover secret env files; no API key was requested/read/stored, no SDK was
+installed and no paid call or account setting change occurred.
+
+D10's disclosed PostgreSQL history, bounds, serialized turns and 30-day direction
+were reaffirmed. Earlier proposal did not define exact guest ownership/transfer,
+purge timing or exception mechanics: Ticket 02 retains a concrete review gate
+before storage rather than inventing approval. D01/D11 wording/reviewer remains
+a relevant safety/release gate. RAG/embeddings, frontend and actual staff handoff
+queue remain later phases; no P0 obligation was removed.
+
+Validation: custom standard-library documentation checks passed for six ticket
+templates/statuses, dependency graph in dependency order, local Markdown links,
+unchecked acceptance criteria (9/9/9/7/8/9), whitespace and conflict markers across
+11 planning/contract files before this log entry. git diff --check passed.
+git check-ignore confirmed .env, .env.local and .env.anthropic are ignored without
+creating them. Final consistency/link/whitespace checks also include this log.
+Git emits the existing LF-to-CRLF normalization notice for the phase plan, not a
+content failure. No configured Markdown test/linter was added. Application tests,
+PostgreSQL, behavioral evals and hosted CI were not run: documentation-only work,
+no behavior or model-quality claim. Seven existing inventory cases remain
+pending/unexecuted; no new baseline is claimed.
+
+Changed-file manifest (12 Markdown files): PRD.md, docs/ARCHITECTURE.md,
+docs/DECISIONS.md, this progress log, plans/phase-3-ai-tools.md,
+.scratch/phase-3-ai-tools/spec.md and six issues numbered 01–06 under that feature.
+No code, migrations, dependencies, workflow, credential or patient data changes.
+No staging, commit, push or implementation. Next: review documentation and approve
+Ticket 01 implementation in a fresh session. Paid runs remain separately gated;
+required missing live/hosted evidence must block the relevant later phase gate.
+
+## 2026-10-18 — Phase 3 planning final review and Git authorization
+
+Owner approved the planning structure and authorized exactly one planning-only
+commit `docs: plan phase 3 ai tool calling` and normal push to origin/master,
+subject to final review. No Ticket 01 implementation, Phase 4, paid Anthropic call
+or additional commit is authorized. Current plan reflects this one-time approval;
+previous dated no-Git-approval statements describe earlier checkpoints.
+
+Reviewed all 12 Markdown files against approved scope and Phase 2 contracts.
+Six complete acceptance/verification handoffs form 01 -> 02 -> 03 -> {04, 05} ->
+06; each is independently verifiable after its blockers. 04/05 test against the
+already implemented management services, so neither needs the other's AI tool.
+Clarified that read-only and proposal tools are model-callable while confirmation
+tools are not. Anthropic interface/model/config, strict/sequential schemas,
+deterministic user confirmation, D10 review gates and cumulative USD 5/explicit
+paid approval are consistent. No scope/policy change or unresolved review defect.
+
+git check-ignore --non-matching confirmed the feature directory, shared spec and
+all six issue files are not ignored. Add them normally, without force, so they
+persist in the repository for future sessions. Initial HEAD and origin/master
+were 5b983870efe0e9aec7ac3c2f60f3850e5c7c1037 with zero local commits ahead;
+live remote master matched after a read-only network retry outside the restricted
+sandbox. Initial sandbox network attempt failed; no repository change resulted.
+
+Restrict staging to the reviewed 12 Markdown paths; verify exact staged content,
+normalized hashes, local links/templates/dependency graph and credential/artifact
+exclusion, then run git diff --cached --check before committing. Record final Git
+and exact-SHA Actions evidence in ignored nonsecret test-results reports and the
+handoff, without another tracked post-commit edit. Application tests, DB tests and
+AI evals are not required for this documentation-only commit and were not run.
+Next implementation remains separately approved Ticket 01 in a fresh session.
