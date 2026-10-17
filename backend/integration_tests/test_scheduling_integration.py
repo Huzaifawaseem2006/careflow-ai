@@ -218,9 +218,7 @@ def test_exception_invalidation_and_explicit_regeneration() -> None:
         assert run_operation("generate", DOCTOR, {}, confirmed=True) == 0
 
 
-def test_appointment_integration_guard_fails_closed_before_any_inventory_change() -> (
-    None
-):
+def test_empty_appointment_storage_allows_schedule_maintenance() -> None:
     from careflow.schedule_operator import run_operation
     from careflow.schedule_schema import slots
 
@@ -233,18 +231,7 @@ def test_appointment_integration_guard_fails_closed_before_any_inventory_change(
             before = list(
                 connection.execute(select(slots).order_by(slots.c.id)).mappings()
             )
-            # Sentinel only: actual appointment schema and booked-state behavior
-            # are Ticket 03. Adding that table must require explicit integration.
-            connection.execute(text("CREATE TABLE appointments (id uuid PRIMARY KEY)"))
-        with pytest.raises(ValueError, match="Appointment integration"):
-            run_operation(
-                "deactivate-schedule",
-                DOCTOR,
-                {"id": payload["id"], "expected_version": 1},
-                confirmed=True,
-            )
-        with pytest.raises(ValueError, match="Appointment integration"):
-            run_operation("generate", DOCTOR, {}, confirmed=True)
+        assert run_operation("generate", DOCTOR, {}, confirmed=True) == 0
         with engine.connect() as connection:
             assert (
                 list(connection.execute(select(slots).order_by(slots.c.id)).mappings())
@@ -253,7 +240,19 @@ def test_appointment_integration_guard_fails_closed_before_any_inventory_change(
         response = TestClient(app).get(
             f"/doctors/{DOCTOR}/slots", params=query_times(payload)
         )
-        assert response.status_code == 503
+        assert response.status_code == 200 and len(response.json()["items"]) == 2
+        run_operation(
+            "deactivate-schedule",
+            DOCTOR,
+            {"id": payload["id"], "expected_version": 1},
+            confirmed=True,
+        )
+        assert (
+            TestClient(app)
+            .get(f"/doctors/{DOCTOR}/slots", params=query_times(payload))
+            .json()["items"]
+            == []
+        )
     finally:
         engine.dispose()
 
@@ -602,6 +601,9 @@ def test_read_only_application_role_cannot_mutate_scheduling(
                     "GRANT SELECT ON clinics, doctors, specialties, doctor_schedules, "
                     "schedule_exceptions, slots, alembic_version TO " + role
                 )
+            )
+            connection.execute(
+                text("GRANT SELECT (id, slot_id, status) ON appointments TO " + role)
             )
         monkeypatch.setenv(
             "DATABASE_URL",

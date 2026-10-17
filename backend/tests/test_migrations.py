@@ -14,6 +14,18 @@ from pytest import MonkeyPatch
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_booking_migration_enforces_scope_capacity_and_immutable_fee() -> None:
+    output = StringIO()
+    command.upgrade(
+        Config(str(ROOT / "alembic.ini"), output_buffer=output), "head", sql=True
+    )
+    ddl = output.getvalue()
+    assert "CREATE TABLE appointments" in ddl
+    assert "uq_appointments_booked_slot" in ddl
+    assert "fk_appointments_patient_clinic" in ddl
+    assert "booking_immutable" in ddl
+
+
 def test_initial_migration_emits_vector_ddl_without_database(
     monkeypatch: MonkeyPatch,
 ) -> None:

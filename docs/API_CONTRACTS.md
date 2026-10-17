@@ -1,6 +1,6 @@
 # Proposed API and tool contracts
 
-Status: health/readiness, the Ticket 05 patient-session routes and the Phase 2 Ticket 01 public catalog below are implemented. Other domain endpoints and all AI tools remain planned. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
+Status: health/readiness, the Ticket 05 patient-session routes and the Phase 2 public catalog/availability and Ticket 03 booking routes below are implemented. Other domain endpoints and all AI tools remain planned. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
 
 ## Common rules
 
@@ -8,7 +8,7 @@ All request/response bodies are versioned Pydantic v2 models with bounded length
 
 All instants use ISO 8601 with offset; responses include clinic timezone for display. Fee is decimal amount plus ISO currency, never float. Public availability and price are snapshots, not reservations. Mutation response contains persisted appointment ID/state plus correlation ID, or a stable error. Every request is rate/body limited. Auth uses server context; role, patient, clinic and actor IDs are not accepted as authority from JSON or model args.
 
-Approved explicit confirmation flow: `POST /appointment-proposals` or corresponding cancel/reschedule proposal endpoint returns a short-lived opaque proposal ID and exact review summary. UI displays that summary; a distinct user click submits proposal ID and an idempotency key to the appropriate mutation endpoint. The server checks actor, operation, payload digest, slot/resource state, displayed fee and policy version, expiry and one-time consumption. A changed consultation fee requires a new proposal and confirmation. AI `confirm_*` calls alone never prove a user click. A staff UI needs the same principle for appointment writes. Chat-message submission is not an appointment mutation; handoffs require authenticated patients in the MVP.
+Approved explicit confirmation flow: `POST /appointments/proposals` or corresponding cancel/reschedule proposal endpoint returns a short-lived opaque proposal ID and exact review summary. UI displays that summary; a distinct user click submits proposal ID and an idempotency key to the appropriate mutation endpoint. The server checks actor, operation, payload digest, slot/resource state, displayed fee and policy version, expiry and one-time consumption. A changed consultation fee requires a new proposal and confirmation. AI `confirm_*` calls alone never prove a user click. A staff UI needs the same principle for appointment writes. Chat-message submission is not an appointment mutation; handoffs require authenticated patients in the MVP.
 
 ## REST surface
 
@@ -23,8 +23,8 @@ Approved explicit confirmation flow: `POST /appointment-proposals` or correspond
 | `GET /specialties` | Public | Implemented: active specialties in the fixed demo clinic; bounded pagination and clinic/city filters |
 | `GET /doctors` | Public | Implemented: active doctors and specialties; specialty UUID and clinic/city filters; exact consultation fee |
 | `GET /doctors/{id}/slots` | Public | Implemented in Ticket 02: persisted active future slots, required offset-aware bounded range; GET never generates |
-| `POST /appointment-proposals` | Patient | Validate owned actor, actual slot and current summary; no booking mutation |
-| `POST /appointments` | Patient | Confirm proposal + idempotency key; atomic booking, persisted ID |
+| `POST /appointments/proposals` | Patient | Implemented: strict `{slot_id}`; authenticated, same-origin CSRF; 201 review/proof/expiry, no reservation |
+| `POST /appointments` | Patient | Implemented: strict `{proposal_token}` plus Idempotency-Key; 201 persisted booking, 200 exact replay; atomic proof/retry/audit |
 | `GET /me/appointments` | Patient | Own records only, bounded pagination |
 | `POST /appointments/{id}/cancel-proposal` | Owner or authorized staff | Check ownership/scope and current policy; exact summary |
 | `POST /appointments/{id}/cancel` | Owner or authorized staff | Confirm bound proposal; audit; idempotent retry |
@@ -115,13 +115,12 @@ Explicit generation inserts/reactivates eligible slots only, using stable IDs;
 reactivation increments the slot version, while an unchanged repeat changes none.
 
 Lock order is fixture advisory lock `48405004`, doctor row, schedule/exception,
-then affected slots, all in one transaction. Ticket 03 must use the compatible
-doctor-before-slot order, revalidate resource versions and add actual booked-state
-checks before invalidation and active-appointment exclusion in availability.
-Until integrated, detecting `public.appointments` fails closed: operator writes
-refuse and availability returns 503. This is a protective boundary, not tested
-booking functionality. Reject changes invalidating booked appointments; never
-silently move them. Proposal expiry/idempotency and booking schema remain D04/D12.
+then affected slots, all in one transaction. Ticket 03 uses the compatible
+doctor-before-slot order and revalidates resource versions. It replaces the
+earlier fail-closed table guard with actual booked-state checks before
+invalidation and active-appointment exclusion in availability. Changes that
+invalidate booked appointments fail without moving them. Approved D04/booking
+D12 are implemented below.
 
 ### Patient-session transport and errors
 
@@ -150,3 +149,50 @@ Strictly allowlisted, versioned tool schemas with validated inputs and outputs. 
 | `request_handoff` | Queue service | Authenticated patient and consent required |
 
 Do not make confirm tools generally callable from ordinary model output. A confirmed user event is the authority to execute; the orchestrator can describe the resulting operation but cannot manufacture confirmation. No SQL, shell, browser or direct provider-backed data tool is exposed to the model. Tool outputs contain only permitted fields and safe errors.
+
+
+### Patient booking (Phase 2 Ticket 03)
+
+Both POST routes require existing HTTPS patient cookies, exact AUTH_ORIGIN and
+X-CSRF-Token; no client identity/clinic/price/confirmed fields are accepted.
+Bodies, including chunked requests, are capped at 4096 bytes before JSON parsing.
+All private success/error responses use Cache-Control: no-store. Staff writes,
+listing/cancellation/rescheduling and AI/UI adapters remain unimplemented.
+
+POST /appointments/proposals accepts only `{slot_id: UUID}`. A 201 response is
+`{proposal_token, summary, expires_at}`. The summary contains slot_id, doctor_id,
+clinic_id, doctor_name, start_at, end_at, timezone, fee and currency. Timestamps
+include Karachi offsets; fee is a two-decimal string and currency is PKR.
+The 256-bit random proof is stored only as a SHA-256 digest, bound to the
+persisted patient/actor/clinic, operation book and exact server summary/versions.
+Expiry is creation plus five minutes; now >= expiry or slot start rejects it.
+No capacity is reserved. Resource changes require a new review; a concurrent
+booking can win before confirmation.
+
+POST /appointments accepts only `{proposal_token}` with Idempotency-Key matching
+`[A-Za-z0-9_-]{1,128}`. Success returns the persisted id, patient_id, clinic_id,
+doctor_id, slot_id, status booked, doctor_name, start_at, end_at, timezone,
+accepted_fee, currency and created_at. Accepted fee/currency/time/doctor snapshot
+is immutable. The separate submission expresses confirmation of the issued
+review; booleans/model statements grant no authority. Future UI/AI adapters must
+provide the distinct explicit user action; this backend does not attest a click.
+
+The same actor/operation/key with the same proof returns 200 with the prior
+persisted booking for 24 hours after successful creation, including after proof
+expiry; authentication/CSRF remain mandatory. At now >= replay_until return
+409 RETRY_EXPIRED for any well-formed request reusing that key. Within the replay
+window, changed proof under a used key returns 409 IDEMPOTENCY_CONFLICT;
+a new key with consumed proof returns 409 PROPOSAL_CONSUMED. Minimal bindings and
+consumed proofs are retained; no cleanup/retention worker exists. User-row locks
+serialize simultaneous keys for one actor; different actors contend on the doctor
+then slot, backed by a unique active-booking index. A failure rolls back booking,
+proof consumption, retry record and audit together.
+
+Errors use the existing safe envelope: 401 AUTH_REQUIRED; 403 CSRF_REJECTED or
+FORBIDDEN; 404 NOT_FOUND for unknown/foreign/wrong-operation proof; 410
+CONFIRMATION_EXPIRED; 422 VALIDATION_ERROR; 409 SLOT_UNAVAILABLE, STATE_CHANGED,
+PROPOSAL_CONSUMED, IDEMPOTENCY_CONFLICT or RETRY_EXPIRED; 503 BOOKING_UNAVAILABLE
+for database failure. No proof/key/session secret or unnecessary patient data
+is copied into errors/audit/logs. Schedule edits affecting booked source slots
+and overlapping exceptions fail atomically; booked slots disappear from GET
+availability. Unrelated valid maintenance remains available.

@@ -16,10 +16,11 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from sqlalchemy import Connection, String, Table, cast, select, text
+from sqlalchemy import Connection, String, Table, cast, exists, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
+from careflow.booking_schema import appointments
 from careflow.catalog_schema import doctors, specialties
 from careflow.database import SCHEMA_REVISION, database_engine
 from careflow.fixture_schema import clinics
@@ -84,6 +85,8 @@ def maintain_schedule(
     connection: Connection, doctor_id: UUID, data: ScheduleInput
 ) -> None:
     previous = resource_version(connection, schedules, doctor_id, data)
+    if previous:
+        reject_booked(connection, doctor_id, schedule_id=data.id)
     values = data.model_dump(exclude={"expected_version", "id"})
     if previous:
         connection.execute(
@@ -108,6 +111,7 @@ def maintain_exception(
     connection: Connection, doctor_id: UUID, data: ExceptionInput
 ) -> None:
     previous = resource_version(connection, exceptions, doctor_id, data)
+    reject_booked(connection, doctor_id, start=data.start_at, end=data.end_at)
     connection.execute(
         slots.update()
         .where(
@@ -139,6 +143,7 @@ def deactivate(
     if not resource_version(connection, table, doctor_id, data):
         raise ValueError("Resource unavailable")
     if table is schedules:
+        reject_booked(connection, doctor_id, schedule_id=data.id)
         connection.execute(
             slots.update()
             .where(slots.c.schedule_id == data.id, slots.c.active.is_(True))
@@ -149,6 +154,27 @@ def deactivate(
         .where(table.c.id == data.id)
         .values(active=False, version=table.c.version + 1)
     )
+
+
+def reject_booked(
+    connection: Connection,
+    doctor_id: UUID,
+    *,
+    schedule_id: UUID | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> None:
+    statement = (
+        select(appointments.c.id)
+        .join(slots, appointments.c.slot_id == slots.c.id)
+        .where(appointments.c.doctor_id == doctor_id, appointments.c.status == "booked")
+    )
+    if schedule_id is not None:
+        statement = statement.where(slots.c.schedule_id == schedule_id)
+    if start is not None and end is not None:
+        statement = statement.where(slots.c.start_at < end, slots.c.end_at > start)
+    if connection.scalar(statement.limit(1)) is not None:
+        raise ValueError("Booked appointments prevent this schedule change")
 
 
 def generate(connection: Connection, doctor_id: UUID, now: datetime) -> int:
@@ -199,7 +225,13 @@ def generate(connection: Connection, doctor_id: UUID, now: datetime) -> int:
                         "schedule_id": row["id"],
                         "version": slots.c.version + 1,
                     },
-                    where=slots.c.active.is_(False),
+                    where=slots.c.active.is_(False)
+                    & ~exists(
+                        select(appointments.c.id).where(
+                            appointments.c.slot_id == slots.c.id,
+                            appointments.c.status == "booked",
+                        )
+                    ),
                 )
             )
             result = connection.execute(statement.returning(slots.c.id)).first()
@@ -261,13 +293,6 @@ def run_operation(
             )
             if doctor is None:
                 raise ValueError("Doctor unavailable")
-            if (
-                connection.scalar(text("SELECT to_regclass('public.appointments')"))
-                is not None
-            ):
-                # Ticket 03 must replace this guard with booked-state checks in
-                # this same transaction/lock order before enabling appointment storage.
-                raise ValueError("Appointment integration required")
             if data is not None:
                 if isinstance(data, ScheduleInput):
                     maintain_schedule(connection, doctor_id, data)

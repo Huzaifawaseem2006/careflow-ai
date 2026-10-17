@@ -75,7 +75,7 @@ Remove-Variable taskDatabasePassword
 .venv\Scripts\python -m alembic current
 ```
 
-Expected revision after Phase 2 Ticket 02: `0005_scheduling`. An older database needs the explicit upgrade above; `/ready` returns 503 until upgraded. Migrations require permission to install vector and PostgreSQL's bundled btree_gist extension. Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
+Expected revision after Phase 2 Ticket 03: `0006_booking`. An older database needs the explicit upgrade above; `/ready` returns 503 until upgraded. Migrations require permission to install vector and PostgreSQL's bundled btree_gist extension. Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
 
 ```sql
 CREATE ROLE careflow_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
@@ -278,7 +278,7 @@ was not run for these uncommitted changes; see the ticket/progress evidence.
 ## Schedules and availability (Phase 2 Ticket 02)
 
 Use a local operator connection to a synthetic demo target, migrate explicitly
-to `0005_scheduling`, and load the existing clinic/catalog fixtures first.
+to current head (`0006_booking`), and load the existing clinic/catalog fixtures first.
 Tests always create disposable `careflow_test_<uuid>` databases; never use
 `careflow_ai` for test runs. No schedules or slots are silently seeded by GETs
 or fixture loading.
@@ -316,6 +316,7 @@ Extend API-role read grants through the trusted local operator connection:
 
 ```sql
 GRANT SELECT ON public.doctor_schedules, public.schedule_exceptions, public.slots TO careflow_app;
+GRANT SELECT (id, slot_id, status) ON public.appointments TO careflow_app;
 ```
 
 Keep scheduling mutation privileges off the API role. Availability is a public
@@ -327,7 +328,7 @@ Invoke-RestMethod 'http://127.0.0.1:8000/doctors/00000000-0000-4000-8000-0000000
 
 Responses include local timestamps, UTC offsets, `Asia/Karachi`, stable slot IDs
 and versions. Empty results stay empty. See API_CONTRACTS.md for exact filters,
-scope, interval semantics and the fail-closed Ticket 03 integration boundary.
+scope, interval semantics and Ticket 03 booked-state exclusion/protection.
 
 Ticket 02 verification on 2026-10-17: **156 full-suite tests passed**, including
 47 real PostgreSQL tests (20 Ticket 02), zero failures/errors/skips. Formatting,
@@ -338,3 +339,79 @@ read-only: application-table update counters were zero, and the delta matched
 observed background catalog auto-analysis. See the ticket/progress for exact
 evidence and limits. No main application data/schema writes, hosted CI run,
 commit or push occurred.
+
+## Patient booking (Phase 2 Ticket 03)
+
+Current schema head is `0006_booking`. Use the existing synthetic account,
+catalog and persisted future slot inventory. The implemented flow is:
+
+1. `GET /auth/csrf`, then `POST /auth/login` using that CSRF and cookie.
+2. `GET /doctors/{id}/slots` for actual inventory; no invented slot IDs.
+3. `POST /appointments/proposals` with only `{slot_id}` and authenticated
+   cookie, exact configured Origin and X-CSRF-Token. Display its doctor, local
+   times, timezone, exact PKR fee and expiry for explicit review.
+4. A separate explicit confirmation submits `POST /appointments` with only
+   `{proposal_token}`, the same security headers and an Idempotency-Key.
+   Initial creation returns 201; the exact authenticated retry returns 200 with
+   the same persisted booking. Keep the same key/proof when a response is lost.
+
+Proposals last five minutes, expire at their deadline or slot start, and hold no
+capacity. Changed authoritative state/fee requires a new proposal and review.
+Retries replay for 24 hours; afterwards RETRY_EXPIRED prevents reuse. Consumed
+proof cannot authorize a new key. No cleanup worker or appointment management
+API is included; Ticket 04 requires a separate session/approval.
+
+The executable HTTP walkthrough runs in-process ASGI with real PostgreSQL,
+including login, review, confirmation, persisted result and exact retry:
+
+```powershell
+.venv\Scripts\python -m pytest backend/integration_tests/test_booking_integration.py::test_http_review_confirmation_and_exact_retry_persist_once -q
+```
+
+Set TEST_DATABASE_URL to the local `postgres` maintenance database using the
+existing hidden-password process above. Tests now refuse any other maintenance
+database and create/drop only fresh careflow_test_<uuid> databases. Never use
+careflow_ai for tests. No frontend, AI adapter or real patient is required.
+
+For a fresh restricted API role, these grants cover auth and booking in addition
+to public catalog/availability reads. Apply only to an intentionally selected
+synthetic deployment using the operator connection; tests exercise these grants
+on a temporary role/database, without changing the main database:
+
+```sql
+GRANT SELECT ON public.alembic_version, public.users, public.patients,
+  public.clinics, public.doctors, public.specialties, public.services,
+  public.doctor_schedules, public.schedule_exceptions, public.slots,
+  public.appointments, public.booking_proposals, public.booking_retries,
+  public.booking_audit TO careflow_app;
+GRANT SELECT (id, clinic_id, demo_role, is_synthetic)
+  ON public.demo_identities TO careflow_app;
+GRANT UPDATE (password_hash) ON public.users TO careflow_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sessions, public.auth_limits
+  TO careflow_app;
+GRANT INSERT ON public.appointments, public.booking_proposals,
+  public.booking_retries, public.booking_audit TO careflow_app;
+GRANT UPDATE (appointment_id) ON public.booking_proposals TO careflow_app;
+GRANT UPDATE (id) ON public.patients, public.demo_identities, public.clinics,
+  public.doctors, public.specialties, public.doctor_schedules, public.slots
+  TO careflow_app;
+```
+
+PostgreSQL row locks need an UPDATE column privilege; the id-only grants support
+those locks. The API exposes no scope/catalog/schedule writes. Persona SELECT is
+column-limited so the account provisioning/reset CLI cannot run as this role.
+Appointments, audit and retries have no runtime UPDATE/DELETE grants. Revisit
+existing broader grants when configuring an existing role; these statements do
+not revoke permissions it already has. See docs/API_CONTRACTS.md for exact
+request/response fields, status codes, expiry and retry rules.
+
+
+Ticket 03 verification on 2026-10-17: 82 real PostgreSQL tests (35 booking),
+103 offline/unit tests and 15 serial CI regressions passed across the final
+suites (200 unique). Two full-run subprocess startup timeouts passed unchanged
+on focused rerun and the subsequent complete offline foundation run. Earlier
+failed attempts remain in local evidence. Test-only native connection startup
+allows 10s and maintenance DDL 30s; production connect/statement limits remain
+3s. Startup root cause is unisolated; TestClient deprecation remains. Final
+catalog-only safety audit and test DB/role/credential/helper cleanup passed.
+No AI behavior, hosted CI, commit, push or Ticket 04 implementation is claimed.

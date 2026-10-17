@@ -69,6 +69,7 @@ def provision(
         connection.execute(
             patients.insert().values(
                 id=uuid4(),
+                clinic_id=persona["clinic_id"],
                 user_id=user_id,
                 demo_identity_id=persona["id"],
             )

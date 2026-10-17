@@ -511,3 +511,195 @@ Commit/push and exact-SHA hosted CI results are recorded in the session handoff
 and ignored test-results/schedules-git-ci.json after execution; this entry records
 the precommit review, not a claim that a pending push or hosted run has passed.
 No Ticket 03 or booking implementation is authorized.
+
+## 2026-10-17 — Ticket 03 approved; PostgreSQL TDD credential checkpoint
+
+Verified clean master and live origin/master at expected
+b64956c8b32c384257443036ce98ec6ddabb5cf5. Owner approved D04/booking-only D12
+and booking service, authenticated HTTP and real PostgreSQL TDD seams; recorded
+those decisions before code. Cancellation/rescheduling decisions remain pending.
+
+Partial implementation: strict bounded appointment transport and response models,
+0006_booking migration DDL with clinic backfill, scoped references, capacity-one
+index and immutable snapshot trigger; booking table definitions; narrow patient
+clinic provisioning/schema changes; initial PostgreSQL HTTP walkthrough test.
+Changed accounts.py, database.py, identity_api.py, identity_schema.py, main.py,
+test_migrations.py and decisions/ticket/progress; added booking.py,
+booking_api.py, booking_schema.py, 0006_booking.py, test_booking_http.py and
+integration test_booking_integration.py. No API completion is claimed: service
+functions contain NotImplementedError; existing availability/operator appointment
+guards have not been replaced. Do not deploy or migrate this partial checkout.
+
+Observed red -> green for seven transport tests and booking migration DDL test.
+Focused booking/migration/auth HTTP selection passed 19 tests. Strict mypy passed
+56 source files; Ruff format/lint, pip check and git diff --check passed. Existing
+Starlette TestClient deprecation and sandbox pytest-cache write warnings appeared.
+Final checkpoint selection: 19 passed, 1 PostgreSQL test skipped because
+TEST_DATABASE_URL is unset, zero failures. The checkpoint JUnit report is
+test-results/booking-checkpoint.xml (ignored).
+No complete acceptance criterion, real PostgreSQL booking behavior or full
+regression is claimed. No AI change/eval, hosted CI, commit or push occurred.
+
+TEST_DATABASE_URL is unset and local maintenance authentication requires a
+password. Created ignored configure-booking-tests.ps1 and run-booking-tests.ps1;
+the former accepts hidden local input and stores a Windows DPAPI encrypted secret,
+the latter passes it only through child process environment to PostgreSQL
+maintenance database postgres. No secret file exists at this checkpoint. No
+migration or test database/role was created; careflow_ai was never connected to
+or modified. Owner action: run the configuration helper locally, reply ready.
+
+Ticket 03 remains needs-info, not resolved. Resume real PostgreSQL red/green from
+the first HTTP walkthrough; implement booking transactions, identity revalidation,
+retry/expiry rules, booked-state availability/maintenance integration, adversarial
+and independent-connection race/rollback tests. Finish full checks and required
+code review, update contracts and evidence, verify disposable resource cleanup,
+and remove credential/helpers. Do not start Ticket 04 or commit/push.
+
+## 2026-10-17 — Ticket 03 resumed; final verification in progress
+
+Owner entered the local credential; real PostgreSQL TDD resumed. Implemented
+proposal/confirmation transactions, persisted clinic-scope authentication,
+immutable accepted pricing, scoped retries/expiry, atomic audit/rollback and
+booked-state availability/maintenance integration. Observed red -> green for
+source-window validation, session expiry during a doctor-lock wait and specialty
+eligibility lock retention. Focused real-PG batches passed: initial service 12,
+races 10, scope/inventory/backfill 7, constraints/runtime-role 2, specialty/role 2;
+these overlap and are not a final unique test count. Both review axes are clear
+following the specialty-lock fix. New booking PostgreSQL inventory is 35 tests.
+
+Initial full run retained booking-full.xml: 176 passed, 1 failed (old read-only
+availability-role grant), 7 setup errors (six sandbox temp-directory ACL errors,
+one disposable database creation failure); pytest sessionfinish also failed on
+the temp ACL. Corrected the role's narrow appointment-column read grant. Native
+rerun outside sandbox retained booking-full-final.xml: 27 passed then one local
+connection-startup timeout in fixture setup, not a booking assertion failure.
+40 read-only postgres-maintenance connection probes all passed (0.08–0.22s), so
+the intermittent startup cause is not isolated. Diagnosis evidence is ignored
+booking-connect-diagnostic.json. No application timeout was relaxed.
+
+The integration fixture now confines maintenance to local postgres, allows ten
+seconds for connection startup inside its disposable-test scope and thirty
+seconds for maintenance CREATE/DROP DATABASE only. Production connect_timeout
+and runtime SQL statement_timeout remain three seconds. All actual PostgreSQL
+business/concurrency assertions remain required; no skips count as passing.
+Current full rerun: booking-full-verified.xml, basetemp booking-final-verified-tmp,
+outside the sandbox's pytest ACL restriction. Ruff, strict mypy (56 files), pip
+check and diff whitespace checks passed; serial CI/full final/cleanup remain
+pending. Do not mark Ticket 03 resolved yet. Credential plus configuration,
+runner, safety and connection-diagnostic helpers remain ignored and must be
+removed after final catalog-only safety/cleanup verification. No main database
+connection/mutation, commit, push, AI change or Ticket 04 work occurred.
+
+
+## 2026-10-17 — Ticket 03 resolved; verified booking handoff
+
+All nine Ticket 03 criteria checked. Implemented proposal/confirmation booking
+only: authenticated persisted patient/clinic scope, current slot/fee review,
+five-minute hashed actor/action proof without capacity hold, explicit separate
+CSRF confirmation, immutable accepted snapshot, compatible row locks and atomic
+appointment/proof/retry/audit. Exact authenticated retries replay for 24 hours;
+expired keys return RETRY_EXPIRED even with changed well-formed proof, and new
+keys cannot replay consumed proof. Booked slots disappear from availability;
+conflicting schedule/exception edits roll back without invalidating bookings.
+No cancellation/rescheduling/listing/AI/frontend API or new dependency added.
+
+Executed verification (all evidence ignored under test-results):
+
+- Real PostgreSQL: 82 passed, zero failed/errors/skips, including 35 booking cases
+  covering permissions, concurrency, idempotency, fee/state expiry, injected audit
+  failure, migration/backfill, restricted role and HTTP walkthrough. Extracted
+  from booking-full-verified.xml; that combined run was 183 passed and two offline
+  subprocess timeout failures, not an entirely passing full run.
+- Unchanged affected migration/scheduling files rerun: 23 passed, zero failures.
+  Command: python -m pytest backend/tests/test_migrations.py
+  backend/tests/test_scheduling.py -q; booking-offline-recheck.xml.
+- Serial CI: python -m pytest ci_tests -q, 15 passed, zero failures/skips.
+  Its real foundation subprocess reran all 103 offline/unit tests successfully;
+  copied booking-foundation-final.json/xml and retained booking-ci.xml.
+- Final expiry/error-precedence red -> green recheck: two PostgreSQL tests passed;
+  booking-retry-final.xml. These overlap the 82, so are not added to unique count.
+- Total unique passing coverage across final suites: 82 + 103 + 15 = 200.
+  Ruff formatting/lint, strict mypy (56 source files), pip check and final
+  whitespace check passed. No Python dependency was added or changed.
+- Standards review: zero findings. Spec review's specialty lock gap fixed with
+  shared lock and observed failing/passing independent-connection NOWAIT test;
+  recheck clear. Harness changes also reviewed; no blocking finding remains.
+
+Earlier failures are retained in booking-full.xml (176 passed, one old read-only
+availability grant failure, seven setup errors including six temp ACL errors)
+and booking-full-final.xml (27 passed then a fixture connection timeout).
+Sandbox pytest ACL failures required native execution. Forty read-only connection
+probes passed (0.08–0.22s); intermittent startup cause remains unisolated. Test
+harness allows 10s startup only within disposable-test scope, 30s CREATE/DROP
+maintenance DDL; application connect and runtime SQL limits remain 3s. CLI wall
+limits and assertions were unchanged. Existing TestClient deprecation remains.
+No failure/error/required skip remains in the final passing suite coverage.
+
+Database safety: only postgres maintenance catalog reads plus generated
+careflow_test UUID databases were used; no connection to or mutation/migration
+of careflow_ai. Independent final catalog-only audit found no test DBs/roles;
+main OID 16388 and inserted/updated/deleted counters 1498/91/21 match the during-run
+snapshot. This is bounded catalog/source evidence, not an application-row content
+snapshot. Removed and verified absence of encrypted credential, four helpers and
+five generated pytest directories. Verification-process DATABASE_URL and
+TEST_DATABASE_URL unset. Nonsecret reports remain ignored; no secret or URL was
+logged/committed. booking-verification.json and booking-cleanup.json consolidate
+evidence. AI evals are inapplicable: no AI changes, seven behavioral inventory
+cases remain pending/unexecuted. Hosted CI awaits separately approved commit/push.
+
+D04 and booking-only D12 approved before implementation, no new policy approval
+inferred. Ticket 04 must preserve booking retry results before enabling mutable
+appointment status/slot, while separately resolving cutoff/pricing/contracts.
+Next: owner reviews Ticket 03 source/documentation; each commit/push still needs
+explicit approval. Ticket 04 only in a fresh separately approved session. No
+commit, push or Ticket 04 work occurred.
+
+Changed-file manifest (24 paths):
+- `.scratch/phase-2-clinic-operations/issues/03-appointment-booking.md`
+- `README.md`
+- `backend/careflow/accounts.py`
+- `backend/careflow/availability.py`
+- `backend/careflow/booking.py`
+- `backend/careflow/booking_api.py`
+- `backend/careflow/booking_schema.py`
+- `backend/careflow/database.py`
+- `backend/careflow/identity.py`
+- `backend/careflow/identity_api.py`
+- `backend/careflow/identity_schema.py`
+- `backend/careflow/main.py`
+- `backend/careflow/schedule_operator.py`
+- `backend/integration_tests/conftest.py`
+- `backend/integration_tests/test_booking_integration.py`
+- `backend/integration_tests/test_scheduling_integration.py`
+- `backend/migrations/versions/0006_booking.py`
+- `backend/tests/test_booking_http.py`
+- `backend/tests/test_migrations.py`
+- `docs/API_CONTRACTS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/DECISIONS.md`
+- `docs/PROGRESS.md`
+- `plans/phase-2-clinic-operations.md`
+
+
+## 2026-10-17 - Ticket 03 commit/push approval and staged review
+
+Owner explicitly approved one commit `feat: implement transactional appointment
+booking` and normal push to origin/master, conditional on a clean staged review.
+Reviewed all 24 Ticket 03 paths, approved D04/booking D12, all nine checked
+criteria and retained local evidence: 82 PostgreSQL + 103 offline/unit + 15
+serial CI = 200 unique passing tests across suites, including successful reruns
+rather than an entirely green combined attempt. Preserve earlier failures,
+unisolated native startup limitations, test-only allowances and TestClient
+warning. Normalized two documentation files' mixed punctuation encoding to UTF-8
+without changing their requirements or evidence.
+
+Retained final catalog-only safety evidence confirms no test DBs/roles and main
+OID 16388 with counters 1498/91/21; tests never connected to or modified
+careflow_ai. Credential/helpers and generated test directories were removed.
+Only source, migrations, tests and relevant documentation belong in the approved
+24-path staged manifest; no secret, generated report or unrelated work is part
+of this commit. Ticket 04 D12 cutoff/pricing/mutation decisions remain pending.
+The staged whitespace check, exact committed/pushed SHA and hosted Actions
+outcome are recorded in the session handoff and ignored booking-git-ci.json;
+this precommit entry does not claim the pending Git/hosted operations succeeded.
+No Ticket 04 implementation or further commit is authorized.

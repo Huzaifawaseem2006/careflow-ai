@@ -34,6 +34,7 @@ patients = Table(
     "patients",
     metadata,
     Column("id", Uuid, primary_key=True),
+    Column("clinic_id", Uuid, nullable=False),
     Column("user_id", Uuid, ForeignKey(users.c.id), nullable=False, unique=True),
     Column(
         "demo_identity_id",

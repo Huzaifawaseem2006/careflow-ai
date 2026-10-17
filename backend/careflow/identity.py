@@ -19,7 +19,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
 from careflow.database import database_engine
-from careflow.fixtures import validate_target
+from careflow.fixture_schema import clinics, demo_identities
+from careflow.fixtures import CLINIC, validate_target
 from careflow.identity_schema import auth_limits, patients, sessions, users
 
 HASHER = PasswordHasher()
@@ -213,6 +214,50 @@ def patient_identity(token: str | None) -> PatientIdentity:
                 401, "AUTH_REQUIRED", "A valid patient session is required."
             )
         return PatientIdentity(**row)
+
+
+def mutation_patient(
+    connection: Connection, token: str | None, csrf: str | None
+) -> RowMapping:
+    """Revalidate identity under reset-compatible user-before-session locks."""
+    initial = read_session(connection, token)
+    user = (
+        connection.execute(
+            select(users).where(users.c.id == initial["user_id"]).with_for_update()
+        )
+        .mappings()
+        .first()
+    )
+    session = read_session(connection, token, lock=True)
+    if user is None or not user["active"] or session["user_id"] != user["id"]:
+        raise IdentityError(401, "AUTH_REQUIRED")
+    require_csrf(session, csrf)
+    patient = (
+        connection.execute(
+            select(patients.c.id, patients.c.clinic_id, patients.c.user_id)
+            .select_from(
+                patients.join(
+                    demo_identities, patients.c.demo_identity_id == demo_identities.c.id
+                ).join(clinics, patients.c.clinic_id == clinics.c.id)
+            )
+            .where(
+                patients.c.user_id == user["id"],
+                patients.c.clinic_id == demo_identities.c.clinic_id,
+                patients.c.clinic_id == CLINIC["id"],
+                demo_identities.c.demo_role == "patient",
+                demo_identities.c.is_synthetic.is_(True),
+                clinics.c.is_synthetic.is_(True),
+                clinics.c.currency == "PKR",
+                clinics.c.timezone == "Asia/Karachi",
+            )
+            .with_for_update(read=True, of=(patients, demo_identities, clinics))
+        )
+        .mappings()
+        .first()
+    )
+    if patient is None:
+        raise IdentityError(403, "FORBIDDEN")
+    return patient
 
 
 def sign_out(token: str | None, csrf: str | None) -> None:

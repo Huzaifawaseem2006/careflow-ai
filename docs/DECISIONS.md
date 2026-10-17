@@ -160,3 +160,33 @@ Fixture advisory lock then doctor/resource/slot locks serialize maintenance with
 generation; doctor, schedule/exception and affected slot versions carry staleness
 into the later proposal contract. These implementation details do not select
 proposal expiry, booking schema or D04/D12 policy.
+
+## Phase 2 Ticket 03 booking — approved 2026-10-17
+
+Owner approved D04 and booking-only D12, and booking service, authenticated HTTP
+and real PostgreSQL constraint/transaction/concurrency TDD seams. Five-minute
+actor/action-bound hashed opaque proposals reserve no capacity; expire at
+now >= expires_at or slot start. Changed authoritative fee, relevant versions
+or eligibility requires fresh review. Immutable accepted PKR pricing is persisted.
+
+POST /appointments/proposals accepts only slot_id and returns proof, exact server
+review summary and expiry. Separate POST /appointments accepts only
+proposal_token, with Idempotency-Key, same-origin HTTPS and session CSRF. No
+patient/clinic/price/confirmed authority fields. Initial creation returns 201;
+authenticated exact successful replay returns 200 for 24 hours after commit,
+even after proposal expiry, with CSRF still required. At the boundary return
+409 RETRY_EXPIRED; preserve minimal actor/action/key/request binding and consumed
+proof to prevent re-execution. No general cleanup/retention system is approved.
+
+Use existing 401 authentication, 403 origin/CSRF, 422 validation; 404 for
+unavailable/foreign proof, 410 for expired proof; stable 409 codes for stale
+state, unavailable slot, consumed proof, retry expiry and idempotency mismatch.
+Appointment, proposal consumption, retry result and minimal redacted audit commit
+atomically with database-enforced single active booking and clinic-consistent
+references. Locks follow user -> session -> doctor -> schedule/slot ->
+proposal/retry ordering, compatible with reset/logout and operator maintenance.
+Concurrent requests serialize; revalidate authority and state inside transactions.
+Confirmation is a distinct authenticated submission of issued proof after review;
+a model assertion or boolean cannot grant authority. Frontend/AI adapters remain
+out of scope. Cancellation/rescheduling/cutoff/pricing decisions remain pending
+for Ticket 04. No commit or push is authorized.

@@ -34,7 +34,7 @@ Retain the PRD users, patients, staff, clinics, specialties, doctors, schedules,
 
 Approved persisted `slots`: 30-minute intervals generated deterministically for a bounded horizon from schedules and blocking exceptions. Ticket 02 implements unique `(doctor_id, start_at)`, exact finite 30-minute intervals and an active-interval GiST exclusion constraint; unique starts alone cannot prevent shifted overlaps. Capacity is one patient per slot; Ticket 03 derives booked availability from active appointments rather than adding a booking flag. Schedule edits must never silently move booked appointments. D03 horizon and local-time/edit policy were approved on 2026-10-17; see DECISIONS.md and the implemented API contract.
 
-Proposed appointment states: `booked`, `cancelled`; reschedule updates the owned appointment's slot with an audit event. Partial unique index on `slot_id` for `booked` appointments protects capacity; cancelled history remains. Preserve accepted fee/currency snapshot so later catalog edits do not rewrite the confirmed price. These are proposed additions, not existing fields.
+Proposed appointment states: `booked`, `cancelled`; reschedule updates the owned appointment's slot with an audit event. Partial unique index on `slot_id` for `booked` appointments protects capacity; cancelled history remains. Preserve accepted fee/currency snapshot so later catalog edits do not rewrite the confirmed price. Ticket 03 implements booked-only storage and immutable accepted pricing; cancellation/rescheduling contracts remain for Ticket 04.
 
 Two additional tables are proposed because the PRD sketches do not cover security invariants:
 
@@ -72,12 +72,35 @@ resources. Availability only reads persisted active future unblocked slots in th
 fixed synthetic clinic. The approved horizon is today plus 29 Karachi dates;
 generation is explicit and has no scheduler. API roles receive read-only grants.
 
-Ticket 03 must preserve doctor-before-slot locking, reject edits invalidating
-booked appointments, exclude active bookings from availability and revalidate
-doctor/resource versions at confirmation. A fail-closed appointment-table guard
-prevents using Ticket 02 inventory once appointment storage appears without that
-integration. No appointment, proposal, idempotency or audit schema is implemented
-here; D04/D12 remain pending.
+Ticket 03 advances readiness to 0006_booking and replaces the fail-closed guard
+with actual booked-state exclusion/protection. It adds appointments, hashed
+actor/action-bound booking_proposals, scoped booking_retries and booking_audit.
+Patient clinic scope is backfilled from the persisted persona and constrained by
+composite references; appointment patient/doctor/slot/clinic references agree.
+A partial unique booked-slot index enforces capacity; a database trigger protects
+the accepted snapshot from UPDATE. No listing/cancel/reschedule API is added.
+
+Booking locks user then session (compatible with reset/logout), holds shared
+scope locks on patient/persona/clinic, then locks doctor and source schedule/slot
+before proof consumption; specialty eligibility is also held under a shared row
+lock through commit. Existing operator writes take the fixture advisory
+lock then doctor; booking never requests that advisory lock, avoiding inversion.
+Account/session and scope are resolved in the same transaction; final absolute
+session expiry is rechecked after resource waits. Current schedule coverage,
+exceptions, eligibility, fee and resource versions are revalidated. Proposal
+review reserves no capacity. Each actor's user lock also serializes absent retry
+keys; successful appointment/proof/retry/audit writes commit together, with the
+persisted response returned only after commit. Audit stores only actor/action,
+appointment reference and timestamp, without bodies/secrets.
+
+D04 and booking-only D12 are approved: five-minute proofs, exact authenticated
+replay for 24 hours, expired retry keys rejected permanently, and retained proof/
+key bindings. Resource changes require fresh review. No retention worker exists.
+Ticket 04 must preserve these invariants while separately resolving its mutation
+contracts/cutoff/pricing decisions; none are approved by Ticket 03. Booking retry
+records currently reference the immutable booked-only snapshot. Before allowing
+status/slot changes, Ticket 04 must preserve the originally committed booking
+retry result rather than returning a later mutated appointment as that result.
 
 ## Transaction design
 

@@ -3,8 +3,9 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import Connection, exists, select, text
+from sqlalchemy import Connection, exists, select
 
+from careflow.booking_schema import appointments
 from careflow.catalog import CatalogError
 from careflow.catalog_schema import doctors, specialties
 from careflow.fixture_schema import clinics
@@ -32,8 +33,6 @@ def read_availability(
         raise CatalogError(
             422, "VALIDATION_ERROR", "Invalid availability range."
         ) from None
-    if connection.scalar(text("SELECT to_regclass('public.appointments')")) is not None:
-        raise CatalogError(503, "CATALOG_UNAVAILABLE", "Availability unavailable.")
     statement = (
         select(
             slots.c.id,
@@ -59,9 +58,15 @@ def read_availability(
             clinics.c.currency == "PKR",
             slots.c.active.is_(True),
             schedules.c.active.is_(True),
-            slots.c.start_at >= now,
+            slots.c.start_at > now,
             slots.c.start_at >= start_at,
             slots.c.end_at <= end_at,
+            ~exists(
+                select(appointments.c.id).where(
+                    appointments.c.slot_id == slots.c.id,
+                    appointments.c.status == "booked",
+                )
+            ),
             ~exists(
                 select(exceptions.c.id).where(
                     exceptions.c.doctor_id == doctor_id,
