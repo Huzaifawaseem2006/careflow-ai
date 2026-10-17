@@ -1,6 +1,6 @@
 # Proposed API and tool contracts
 
-Status: health/readiness, the Ticket 05 patient-session routes and the Phase 2 public catalog/availability and Ticket 03 booking routes below are implemented. Other domain endpoints and all AI tools remain planned. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
+Status: health/readiness, the Ticket 05 patient-session routes and the Phase 2 public catalog/availability and Ticket 03 booking/Ticket 04 management routes below are implemented. Other domain endpoints and all AI tools remain planned. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
 
 ## Common rules
 
@@ -25,11 +25,11 @@ Approved explicit confirmation flow: `POST /appointments/proposals` or correspon
 | `GET /doctors/{id}/slots` | Public | Implemented in Ticket 02: persisted active future slots, required offset-aware bounded range; GET never generates |
 | `POST /appointments/proposals` | Patient | Implemented: strict `{slot_id}`; authenticated, same-origin CSRF; 201 review/proof/expiry, no reservation |
 | `POST /appointments` | Patient | Implemented: strict `{proposal_token}` plus Idempotency-Key; 201 persisted booking, 200 exact replay; atomic proof/retry/audit |
-| `GET /me/appointments` | Patient | Own records only, bounded pagination |
-| `POST /appointments/{id}/cancel-proposal` | Owner or authorized staff | Check ownership/scope and current policy; exact summary |
-| `POST /appointments/{id}/cancel` | Owner or authorized staff | Confirm bound proposal; audit; idempotent retry |
-| `POST /appointments/{id}/reschedule-proposal` | Owner or authorized staff | Validate target slot and current appointment; no state change |
-| `POST /appointments/{id}/reschedule` | Owner or authorized staff | Confirm bound proposal; one transaction, old slot preserved on failure |
+| `GET /appointments` | Patient | Implemented: bounded owned/clinic-scoped cursor listing, status and half-open start-time filters; see Ticket 04 contract below. |
+| `POST /appointments/{id}/cancel/proposals` | Patient | Implemented: owned active appointment review, inclusive 24-hour cutoff, no capacity change. |
+| `POST /appointments/{id}/cancel` | Patient | Implemented: separate bound proof confirmation, atomic cancellation/history/retry; 200 result. |
+| `POST /appointments/{id}/reschedule/proposals` | Patient | Implemented: owned active appointment, current persisted target/fee review, no capacity hold. |
+| `POST /appointments/{id}/reschedule` | Patient | Implemented: separate bound proof confirmation, atomic same-appointment move/history/retry; 200 result. |
 | `POST /chat` | Guest or authenticated | Bounded input, scoped conversation access; structured citations/actions |
 | `POST /handoffs` | Authenticated patient | Persist owned queue request with consent; return actual ID/status |
 | Staff routes, precise paths TBD | Scoped staff/admin | Clinic assignment and explicit permissions for schedule, documents, escalations and redacted audit |
@@ -157,7 +157,7 @@ Both POST routes require existing HTTPS patient cookies, exact AUTH_ORIGIN and
 X-CSRF-Token; no client identity/clinic/price/confirmed fields are accepted.
 Bodies, including chunked requests, are capped at 4096 bytes before JSON parsing.
 All private success/error responses use Cache-Control: no-store. Staff writes,
-listing/cancellation/rescheduling and AI/UI adapters remain unimplemented.
+AI/UI adapters remain unimplemented; appointment management is described below.
 
 POST /appointments/proposals accepts only `{slot_id: UUID}`. A 201 response is
 `{proposal_token, summary, expires_at}`. The summary contains slot_id, doctor_id,
@@ -173,12 +173,12 @@ POST /appointments accepts only `{proposal_token}` with Idempotency-Key matching
 `[A-Za-z0-9_-]{1,128}`. Success returns the persisted id, patient_id, clinic_id,
 doctor_id, slot_id, status booked, doctor_name, start_at, end_at, timezone,
 accepted_fee, currency and created_at. Accepted fee/currency/time/doctor snapshot
-is immutable. The separate submission expresses confirmation of the issued
+is preserved in immutable retry/audit snapshots; a confirmed reschedule may replace the current appointment snapshot. The separate submission expresses confirmation of the issued
 review; booleans/model statements grant no authority. Future UI/AI adapters must
 provide the distinct explicit user action; this backend does not attest a click.
 
 The same actor/operation/key with the same proof returns 200 with the prior
-persisted booking for 24 hours after successful creation, including after proof
+committed response snapshot for 24 hours after successful creation, including after proof
 expiry; authentication/CSRF remain mandatory. At now >= replay_until return
 409 RETRY_EXPIRED for any well-formed request reusing that key. Within the replay
 window, changed proof under a used key returns 409 IDEMPOTENCY_CONFLICT;
@@ -196,3 +196,66 @@ for database failure. No proof/key/session secret or unnecessary patient data
 is copied into errors/audit/logs. Schedule edits affecting booked source slots
 and overlapping exceptions fail atomically; booked slots disappear from GET
 availability. Unrelated valid maintenance remains available.
+
+
+### Patient appointment management (Phase 2 Ticket 04)
+
+GET /appointments requires a current HTTPS patient session. Reject foreign Origin
+and cross-site fetch metadata; same-origin GET needs no Origin/CSRF header.
+Persisted patient/persona/clinic state determines scope, never cursor or caller
+claims. Returns `{items: [appointment], next_cursor: string | null}`. Appointment
+fields match the booking response, with status `booked` or `cancelled`; timestamps
+are Karachi local with explicit offsets and accepted_fee is a two-decimal PKR
+string. No proof/retry/audit metadata or resource versions are returned.
+
+Query parameters: limit defaults to 20 (1–100), optional status booked/cancelled,
+optional start_at (inclusive) and end_at (exclusive), both explicit-offset ISO
+timestamps filtering appointment start. If both are supplied start_at < end_at.
+Order is ascending (start_at, id); pass the returned next_cursor unchanged for
+the next page, retaining filters. Cursor encodes timestamp|UUID, is bounded to
+100 characters, and conveys a position only. Every page independently enforces
+ownership/clinic. Pages reflect current committed state; changes between requests
+can move an item in the order (no frozen cross-request snapshot is promised).
+Unknown query parameters and invalid filters/cursors return safe 422.
+
+POST /appointments/{id}/cancel/proposals accepts only `{}`.
+POST /appointments/{id}/reschedule/proposals accepts only `{slot_id: UUID}`.
+Both return 201 `{proposal_token, summary, expires_at}`; summary contains operation,
+current persisted appointment and target (null for cancel; exact target booking
+review fields for reschedule). Proposal creation changes no booking or capacity.
+The target fee must be reviewed even if equal to the current accepted fee.
+
+Separate POST /appointments/{id}/cancel or /reschedule accepts only
+`{proposal_token}` and requires Idempotency-Key plus the existing HTTPS session,
+Origin and CSRF protections. All writes share the 4096-byte body bound. Success
+is 200 with the committed appointment. Review proofs bind actor, patient, clinic,
+operation, appointment/version, source resource versions and exact target/fee
+versions. They expire after five minutes; reschedule also expires at target start.
+All private responses/errors are no-store. Extra authority/confirmation fields
+are rejected. No LLM/UI confirmation assertion confers authority.
+
+The current appointment must be booked with at least 24 hours remaining; exactly
+24 hours is allowed. Server time is checked at review, after resource waits and
+before commit, including elapsed review time. Past appointments reject with
+409 CHANGE_CUTOFF; cancelled appointments reject with 409 APPOINTMENT_INACTIVE.
+Same-slot reschedules return 409 NO_CHANGE and produce no new proposal/mutation.
+Cancellation preserves accepted pricing/history and releases the booked-slot
+capacity. Rescheduling atomically updates the same appointment, releases source
+capacity and acquires a persisted eligible target with its current reviewed fee.
+Changed versions or fee require new review. Failed changes preserve original
+booking/capacity; audit, proof consumption and retry snapshot commit together.
+Audit keeps before/after slot/accepted-fee snapshots, without raw request secrets.
+
+Exact successful retries require current authorization and CSRF, and return the
+original committed response for 24 hours even after later changes or proof expiry.
+Keys are actor/operation-scoped; path appointment and proof must match. Changed
+proof/path conflicts within the retry window; at now >= replay_until return
+409 RETRY_EXPIRED for well-formed key reuse. Fresh keys cannot reuse consumed
+proofs. Minimal bindings and proofs remain retained; no permanent credential or
+retention subsystem is introduced.
+
+Use existing 401/403/422/503 errors; unknown/foreign appointment, mismatched actor,
+operation or proof returns 404 NOT_FOUND without private disclosure. Expired proof
+or started target returns 410 CONFIRMATION_EXPIRED. Stable 409 codes additionally
+include STATE_CHANGED, SLOT_UNAVAILABLE, PROPOSAL_CONSUMED, IDEMPOTENCY_CONFLICT,
+RETRY_EXPIRED, CHANGE_CUTOFF, APPOINTMENT_INACTIVE and NO_CHANGE.

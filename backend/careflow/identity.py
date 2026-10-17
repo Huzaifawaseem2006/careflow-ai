@@ -217,7 +217,11 @@ def patient_identity(token: str | None) -> PatientIdentity:
 
 
 def mutation_patient(
-    connection: Connection, token: str | None, csrf: str | None
+    connection: Connection,
+    token: str | None,
+    csrf: str | None,
+    *,
+    check_csrf: bool = True,
 ) -> RowMapping:
     """Revalidate identity under reset-compatible user-before-session locks."""
     initial = read_session(connection, token)
@@ -231,7 +235,8 @@ def mutation_patient(
     session = read_session(connection, token, lock=True)
     if user is None or not user["active"] or session["user_id"] != user["id"]:
         raise IdentityError(401, "AUTH_REQUIRED")
-    require_csrf(session, csrf)
+    if check_csrf:
+        require_csrf(session, csrf)
     patient = (
         connection.execute(
             select(patients.c.id, patients.c.clinic_id, patients.c.user_id)

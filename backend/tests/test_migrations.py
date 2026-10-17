@@ -60,3 +60,14 @@ def test_online_migration_failure_does_not_expose_credentials(url: str) -> None:
     assert "Database migration failed" in output
     assert "secret-value" not in output
     assert "Traceback" not in output
+
+
+def test_management_migration_preserves_retry_snapshots_and_change_history() -> None:
+    output = StringIO()
+    command.upgrade(
+        Config(str(ROOT / "alembic.ini"), output_buffer=output), "head", sql=True
+    )
+    ddl = output.getvalue()
+    assert "ADD COLUMN response_snapshot jsonb" in ddl
+    assert "before_snapshot jsonb" in ddl
+    assert "'cancel', 'reschedule'" in ddl

@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import Connection, RowMapping, String, cast, exists, select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -182,6 +183,7 @@ def appointment_result(
         .one()
     )
     result = dict(row)
+    result.pop("version", None)
     result["accepted_fee"] = format(row["accepted_fee"], ".2f")
     for key in ("start_at", "end_at"):
         result[key] = row[key].astimezone(ZONE)
@@ -216,7 +218,7 @@ def confirm(
                 raise IdentityError(409, "RETRY_EXPIRED")
             if retry["proof_hash"] != proof_hash:
                 raise IdentityError(409, "IDEMPOTENCY_CONFLICT")
-            result = appointment_result(connection, retry["appointment_id"])
+            result = dict(retry["response_snapshot"])
             replay = True
         else:
             proposal = (
@@ -291,6 +293,8 @@ def commit_booking(
         .where(proposals.c.proof_hash == proposal["proof_hash"])
         .values(appointment_id=appointment_id)
     )
+    result = appointment_result(connection, appointment_id)
+    snapshot = jsonable_encoder(result)
     connection.execute(
         retries.insert().values(
             actor_id=patient["user_id"],
@@ -299,6 +303,7 @@ def commit_booking(
             proof_hash=proposal["proof_hash"],
             appointment_id=appointment_id,
             replay_until=created + timedelta(hours=24),
+            response_snapshot=snapshot,
         )
     )
     connection.execute(
@@ -306,8 +311,9 @@ def commit_booking(
             id=uuid4(),
             actor_id=patient["user_id"],
             action="book",
+            after_snapshot=snapshot,
             appointment_id=appointment_id,
             created_at=created,
         )
     )
-    return appointment_result(connection, appointment_id)
+    return result

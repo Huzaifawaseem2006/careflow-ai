@@ -78,7 +78,7 @@ actor/action-bound booking_proposals, scoped booking_retries and booking_audit.
 Patient clinic scope is backfilled from the persisted persona and constrained by
 composite references; appointment patient/doctor/slot/clinic references agree.
 A partial unique booked-slot index enforces capacity; a database trigger protects
-the accepted snapshot from UPDATE. No listing/cancel/reschedule API is added.
+the accepted snapshot from UPDATE. Ticket 04 adds owned listing and confirmed changes below.
 
 Booking locks user then session (compatible with reset/logout), holds shared
 scope locks on patient/persona/clinic, then locks doctor and source schedule/slot
@@ -90,17 +90,30 @@ session expiry is rechecked after resource waits. Current schedule coverage,
 exceptions, eligibility, fee and resource versions are revalidated. Proposal
 review reserves no capacity. Each actor's user lock also serializes absent retry
 keys; successful appointment/proof/retry/audit writes commit together, with the
-persisted response returned only after commit. Audit stores only actor/action,
-appointment reference and timestamp, without bodies/secrets.
+persisted response returned only after commit. Ticket 04 extends audit with before/after appointment snapshots for slot/price history, without raw proofs, keys or session secrets.
 
 D04 and booking-only D12 are approved: five-minute proofs, exact authenticated
 replay for 24 hours, expired retry keys rejected permanently, and retained proof/
 key bindings. Resource changes require fresh review. No retention worker exists.
-Ticket 04 must preserve these invariants while separately resolving its mutation
-contracts/cutoff/pricing decisions; none are approved by Ticket 03. Booking retry
-records currently reference the immutable booked-only snapshot. Before allowing
-status/slot changes, Ticket 04 must preserve the originally committed booking
-retry result rather than returning a later mutated appointment as that result.
+Ticket 04/D12 is separately approved: inclusive 24-hour change cutoff, target fee
+review/reconfirmation, owned cursor listing and action/path-bound confirmation.
+Migration 0007_management backfills immutable booking retry/audit responses before
+enabling mutable appointment fields; it adds monotonically increasing appointment
+versions and source/target proof bindings. Cancelled rows and identity fields are
+immutable; accepted fields cannot change without a slot move. The partial booked
+slot index still enforces capacity. Downgrade refuses recorded change history.
+
+Changes reuse the booking transaction/proposal/retry/audit mechanism. Lock user,
+session and persisted scope, then the union of source/target doctors sorted by ID,
+schedules sorted by ID and slots sorted by ID, followed by appointment and proof.
+Revalidate the owned source/version after locking, current target eligibility/fee,
+source resource versions, proposal deadlines and the current appointment cutoff.
+Final policy/deadline/session checks roll back the whole transaction if time
+elapses during SQL. No target hold or intermediate source release is visible.
+Runtime roles can update only management appointment fields, cannot change
+identity or delete appointments, and cannot update/delete retry/audit history.
+Readiness now requires 0007_management. No AI/tools/frontend changes are included.
+
 
 ## Transaction design
 

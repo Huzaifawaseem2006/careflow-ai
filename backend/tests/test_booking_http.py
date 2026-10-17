@@ -64,3 +64,81 @@ def test_chunked_booking_body_is_bounded_without_content_length() -> None:
     response = asyncio.run(request())
     assert response.status_code == 413
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_owned_listing_requires_authentication() -> None:
+    response = TestClient(app, base_url=ORIGIN).get("/appointments")
+    assert response.status_code == 401
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize("action", ["cancel", "reschedule"])
+def test_change_confirmation_rejects_forged_authority_and_requires_origin(
+    action: str,
+) -> None:
+    path = f"/appointments/00000000-0000-0000-0000-000000000001/{action}"
+    client = TestClient(app, base_url=ORIGIN)
+    headers = {"Idempotency-Key": "change"}
+    assert (
+        client.post(
+            path, json={"proposal_token": "x" * 43, "confirmed": True}, headers=headers
+        ).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            path, json={"proposal_token": "x" * 43}, headers=headers
+        ).status_code
+        == 403
+    )
+    headers["Origin"] = ORIGIN
+    assert (
+        client.post(
+            path, json={"proposal_token": "x" * 43}, headers=headers
+        ).status_code
+        == 401
+    )
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "limit=101",
+        "limit=0",
+        "cursor=not-a-cursor",
+        "status=unknown",
+        "start_at=2026-10-17T09:00:00",
+        "start_at=2026-10-18T00:00:00Z&end_at=2026-10-17T00:00:00Z",
+        "patient_id=00000000-0000-0000-0000-000000000001",
+    ],
+)
+def test_listing_rejects_invalid_filters(query: str) -> None:
+    response = TestClient(app, base_url=ORIGIN).get("/appointments?" + query)
+    assert response.status_code == 422
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize("action", ["cancel", "reschedule"])
+@pytest.mark.parametrize("suffix", ["", "/proposals"])
+def test_management_bodies_are_bounded(action: str, suffix: str) -> None:
+    path = f"/appointments/00000000-0000-0000-0000-000000000001/{action}{suffix}"
+    result = TestClient(app, base_url=ORIGIN).post(path, content=b"x" * 4097)
+    assert result.status_code == 413
+    assert result.headers["cache-control"] == "no-store"
+
+
+def test_private_listing_rejects_foreign_origin_and_plain_http() -> None:
+    client = TestClient(app, base_url=ORIGIN)
+    assert (
+        client.get(
+            "/appointments", headers={"Origin": "https://foreign.invalid"}
+        ).status_code
+        == 403
+    )
+    assert (
+        client.get(
+            "/appointments", headers={"Sec-Fetch-Site": "cross-site"}
+        ).status_code
+        == 403
+    )
+    assert TestClient(app).get("/appointments").status_code == 403

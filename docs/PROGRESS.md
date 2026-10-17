@@ -703,3 +703,197 @@ The staged whitespace check, exact committed/pushed SHA and hosted Actions
 outcome are recorded in the session handoff and ignored booking-git-ci.json;
 this precommit entry does not claim the pending Git/hosted operations succeeded.
 No Ticket 04 implementation or further commit is authorized.
+
+
+## 2026-10-17 — Ticket 04 approved; partial offline TDD checkpoint
+
+Started clean master at expected f35e7472f57eb5ba923744cebb0ed37353b9f4d5;
+local tracking ref and live remote master match (sandbox remote attempt failed
+local proxy connection; approved native read succeeded). Read only scoped ticket,
+plan, decisions/progress and relevant booking/auth/schema/test infrastructure.
+Owner explicitly approved management D12/cutoff/pricing and all three TDD seams;
+recorded in DECISIONS before implementation. Corrected plan's stale Ticket 03
+summary using recorded 82 PostgreSQL + 103 offline/unit + 15 serial CI coverage
+without representing those as new Ticket 04 results.
+
+Partial draft: management listing filters/authentication, confirmation transport
+validation/origin/auth guards, draft 0007_management migration with retry snapshot
+backfill/audit history/change-operation support, expected readiness revision and
+focused tests. Listing still returns an empty page after auth; change confirmation
+still rejects with NOT_FOUND. No actual business changes are implemented. No
+migration applied. New ownership integration test is prepared, not verified.
+
+Executed: .venv/Scripts/python -m pytest backend/tests/test_booking_http.py
+backend/tests/test_migrations.py -q -p no:cacheprovider
+--junitxml=test-results/management-offline-checkpoint.xml: 23 passed, zero skips.
+Ruff check and format --check over backend/scripts/ci_tests/evals passed; strict
+mypy over same targets passed (59 source files); git diff --check passed.
+Earlier expected TDD failures: missing listing, missing change routes, invalid
+filters and missing migration DDL; fixed at transport/DDL seams only. Initial
+lint findings corrected. Initial pytest cache ACL warnings avoided by disabling
+cache; existing TestClient deprecation remains.
+
+PostgreSQL attempt: test_management_integration.py: one required skip, because
+TEST_DATABASE_URL is absent; management-no-credentials.xml retains this evidence.
+No PGPASSFILE/default pgpass exists; PostgreSQL service running. Requested secure
+credential source asynchronously. No database connection/mutation occurred and
+no disposable DB/role was created, so no cleanup was required. careflow_ai was
+never contacted or modified. Full regression, serial CI, constraints/races, eval
+inventory and skill-required final code review have not run at this checkpoint.
+
+Ticket status needs-info; all acceptance checkboxes remain unchecked. Resume
+real PostgreSQL TDD once a secure local postgres-maintenance credential source is
+available; preserve the original booking retry response before enabling changes.
+Finish Ticket 04 only. Hosted criterion and Phase 2 exit remain pending separately
+approved Git actions and exact-SHA Actions verification. No commit/push/Phase 3.
+
+
+## 2026-10-17 — Ticket 04 temporary credential workflow prepared
+
+Owner requested the prior temporary Windows workflow: Read-Host -AsSecureString,
+PSCredential for postgres, DPAPI-encrypted Export-Clixml under ignored test-results,
+then disposable-database tests only. Created management-postgres-setup.ps1 and
+management-postgres-tests.ps1 there. Setup restricts the credential file ACL to
+the current user and never connects to PostgreSQL. Runner imports in memory,
+sets only child-process TEST_DATABASE_URL for 127.0.0.1:5432/postgres, removes
+inherited application DATABASE_URL during tests and restores environment in
+finally. Reuses the existing disposable harness without changing it.
+
+Both helpers passed PowerShell parser checks; git check-ignore confirms both
+helpers and the intended credential path are ignored. Credential does not yet
+exist; neither helper was executed, no password read and no DB contacted. Waiting
+for owner to run setup and confirm before consuming credentials. Remove both
+helpers and encrypted credential after verification. Then continue all remaining
+Ticket 04 implementation/regression, not merely the first blocked test. No
+permanent credential storage, commit, push or Phase 3 work authorized.
+
+
+## 2026-10-17 — Ticket 04 resumed; management implemented, regression underway
+
+Owner confirmed temporary encrypted credential setup and authorized continued
+implementation/verification, disposable DBs only, cleanup afterward. Implemented
+owned cursor listing, action/path-bound cancel/reschedule review and confirmation,
+inclusive cutoff at review/after waits/final transaction checks, current target fee
+review, deterministic source/target locks, versioned same-appointment updates,
+complete audit history and immutable booking/change retry snapshots. Added
+0007_management backfill/constraints/readiness and restricted management grants.
+Updated README/contracts/architecture without AI, frontend or new dependencies.
+
+Retained TDD evidence under ignored test-results: initial DB listing failed on
+missing retry snapshot writes, cancellation/rescheduling failed on absent routes;
+subsequent slices passed. Extra origin test failed then passed after GET origin
+check; target-start expiry failed 409 vs required 410 then passed with explicit
+deadline checks. Existing backfill round-trip test passed on its first run (the
+filename management-backfill-red.xml is a test attempt name, not a failure claim).
+Earlier 15-case policy/rollback and five independent-connection race runs passed.
+Expanded PostgreSQL run: 32 passed, no failures/skips, including full HTTP flow,
+pagination/filtering, stale targets/fees and lost authority. New final slices and
+full local gate are still pending; these intermediate results are not phase exit.
+
+Two skill-required review agents stopped at usage limit without reviews; after
+owner resumed they restarted. Standards review now has zero actionable findings;
+Spec review remains pending. Ruff format/lint, strict mypy (59 files), focused
+28 offline tests passed before latest verification. Maintenance-catalog-only
+safety snapshot shows only careflow_ai OID 16388 (counters 1498/91/21), no test
+DBs/roles; never connected to careflow_ai. Temporary credential/helpers remain
+only until final verification/cleanup. No commit/push or Phase 3 work occurred.
+
+
+## 2026-10-17 — Ticket 04 locally verified; ready for Git review
+
+Implemented only Phase 2 Ticket 04 on uncommitted baseline
+f35e7472f57eb5ba923744cebb0ed37353b9f4d5. First nine acceptance criteria are
+checked; hosted criterion and Phase 2 exit remain pending. Ticket status is
+ready-for-human, not resolved. Approved D12/cutoff/pricing/TDD decisions were
+recorded before implementation; corrected the stale Ticket 03 phase-plan summary.
+
+Implemented: authenticated persisted patient/clinic listing with stable
+(start_at, id) cursor order and bounded status/half-open time filters; separate
+cancel/reschedule reviews and confirmations; inclusive 24-hour cutoff at review,
+after waits and final transaction checks; current target fee/version review;
+deterministic resource locking; same-appointment atomic changes, complete
+before/after slot/price audit and immutable booking/change retry snapshots.
+Added 0007_management backfill, appointment versions, constraints/readiness and
+restricted runtime grants. Invalid/expired/foreign/no-op changes preserve state;
+failed targets and injected audit failure preserve original capacity/history.
+
+Executed complete local gate via temporary secure PowerShell wrapper:
+`.venv/Scripts/python scripts/check_phase1.py --report test-results/management-phase2-local.json`.
+Reused the existing gate over all current backend/integration tests; its report
+scope remains phase-1-infrastructure-only, not a Phase 2/hosted exit claim. The
+local-only consolidation is test-results/management-verification.json.
+
+- Foundation: Ruff format --check, Ruff check, strict mypy across backend/scripts/
+  ci_tests/evals passed (59 Python files); 119 backend/eval-infrastructure tests
+  passed, zero failed/errors/skipped. Foundation JUnit duration 41.24s.
+- PostgreSQL: `.venv/Scripts/python -m pytest backend/integration_tests -q -rs
+  --basetemp <gate-evidence>/postgresql-tmp --junitxml <gate-evidence>/postgresql.xml`:
+  119 passed, zero failed/errors/skipped, 783.77s. Includes 37 management tests,
+  independent-connection cancel/reschedule, two reschedules, target booking,
+  target exception and same-key races with persisted audit/availability checks,
+  injected rollback, post-lock cutoff/session expiry, ownership/clinic isolation,
+  restricted-role operations, price history, UTC/midnight and retry/backfill.
+- Serial CI: `.venv/Scripts/python -m pytest ci_tests -q -rs
+  --basetemp <gate-evidence>/ci-tmp --junitxml <gate-evidence>/ci.xml`: 15 passed,
+  zero failed/errors/skipped, 90.64s. Includes real offline foundation subprocess.
+- Offline inventory: `.venv/Scripts/python -m evals.run_local --partition all
+  --report <gate-evidence>/offline.json`: infrastructure passed; seven behavioral
+  cases remain pending/unexecuted, zero failed/blocked/skipped, null quality pass
+  rate. No live model, AI/tool/RAG/prompt/frontend changes or quality claim.
+- Total unique passing suites: 119 + 119 + 15 = 253. Overlapping focused runs and
+  the final one-test catalog safety audit are not added to that total. Pip check
+  and final whitespace check passed. All 59 source hashes match the gate inputs.
+
+Gate evidence directory: test-results/management-phase2-local-b1255f26383d46b4b5de2b2269f989e3.
+Keep its foundation JSON/XML, PostgreSQL/CI XML and offline JSON. Earlier real
+TDD failures remain in management-postgres-first.xml (missing snapshot write),
+management-cancel-red.xml, management-reschedule-red.xml, management-http.xml
+(origin) and management-target-expiry-red.xml. Corresponding green/focused/full
+runs passed. management-no-credentials.xml retains the earlier required skip;
+final full PostgreSQL has zero skips. management-backfill-red.xml actually passed
+on its first run; the name does not indicate a failure. management-attempts.json
+records counts without adding overlapping attempts. Initial lint/type issues were
+fixed; TestClient deprecation remains. Existing test-only 10s startup/30s DDL
+allowances and production 3s limits were unchanged.
+
+Safety and cleanup: final separate `.venv/Scripts/python -m pytest
+test-results/test_management_safety.py -q -p no:cacheprovider` passed. Maintenance
+connection only to postgres; test harness creates/drops careflow_test_<UUID> and
+temporary role prefixes booking/catalog/auth/schedule. No careflow_ai connection,
+migration, reset or mutation. Before/after maintenance catalogs show main OID
+16388 and inserted/updated/deleted 1498/91/21 unchanged; no test DB/role remains.
+This is bounded catalog/source evidence, not an application-row snapshot. Removed
+and verified absence of encrypted credential, setup/test/regression/safety helpers,
+safety bytecode and generated gate PostgreSQL/CI temporary directories; retained
+nonsecret reports. Verification shell DATABASE_URL and TEST_DATABASE_URL absent.
+See management-safety-before.json, management-safety-after.json,
+management-safety-final.xml and management-cleanup.json. No permanent credentials.
+
+Review: first parallel review attempts stopped at usage limit without findings.
+After owner resumed, Standards found zero actionable issues; Spec found one
+stale endpoint/actor table, corrected and independently rechecked clear. No
+outstanding review finding or local test failure. Hosted CI was not run or
+claimed for uncommitted changes. No commit/push/Phase 3 work occurred. Next is
+owner review of the following 18 files and documentation diff; any commit/push
+requires separate approval, then verify exact-SHA Actions before Phase 2 exit.
+
+Changed-file manifest (18):
+
+- .scratch/phase-2-clinic-operations/issues/04-appointment-management-regression.md
+- README.md
+- backend/careflow/booking.py
+- backend/careflow/booking_api.py
+- backend/careflow/booking_schema.py
+- backend/careflow/database.py
+- backend/careflow/identity.py
+- backend/careflow/management.py
+- backend/integration_tests/test_booking_integration.py
+- backend/integration_tests/test_management_integration.py
+- backend/migrations/versions/0007_management.py
+- backend/tests/test_booking_http.py
+- backend/tests/test_migrations.py
+- docs/API_CONTRACTS.md
+- docs/ARCHITECTURE.md
+- docs/DECISIONS.md
+- docs/PROGRESS.md
+- plans/phase-2-clinic-operations.md

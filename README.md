@@ -75,7 +75,7 @@ Remove-Variable taskDatabasePassword
 .venv\Scripts\python -m alembic current
 ```
 
-Expected revision after Phase 2 Ticket 03: `0006_booking`. An older database needs the explicit upgrade above; `/ready` returns 503 until upgraded. Migrations require permission to install vector and PostgreSQL's bundled btree_gist extension. Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
+Expected revision after Phase 2 Ticket 04: `0007_management`. An older database needs the explicit upgrade above; `/ready` returns 503 until upgraded. Migrations require permission to install vector and PostgreSQL's bundled btree_gist extension. Do not run the API with that administrator role. In an interactive `psql -h 127.0.0.1 -U postgres -d careflow_ai -W` session, create the development application role once and enter its password at the prompt:
 
 ```sql
 CREATE ROLE careflow_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
@@ -392,6 +392,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.sessions, public.auth_limits
 GRANT INSERT ON public.appointments, public.booking_proposals,
   public.booking_retries, public.booking_audit TO careflow_app;
 GRANT UPDATE (appointment_id) ON public.booking_proposals TO careflow_app;
+GRANT UPDATE (status, version, slot_id, doctor_id, doctor_name, start_at,
+  end_at, accepted_fee) ON public.appointments TO careflow_app;
 GRANT UPDATE (id) ON public.patients, public.demo_identities, public.clinics,
   public.doctors, public.specialties, public.doctor_schedules, public.slots
   TO careflow_app;
@@ -400,7 +402,7 @@ GRANT UPDATE (id) ON public.patients, public.demo_identities, public.clinics,
 PostgreSQL row locks need an UPDATE column privilege; the id-only grants support
 those locks. The API exposes no scope/catalog/schedule writes. Persona SELECT is
 column-limited so the account provisioning/reset CLI cannot run as this role.
-Appointments, audit and retries have no runtime UPDATE/DELETE grants. Revisit
+Appointment UPDATE is limited to management fields; immutable identity and accepted-price checks remain database-enforced. Audit and retries have no runtime UPDATE/DELETE grants; appointments have no DELETE grant. Revisit
 existing broader grants when configuring an existing role; these statements do
 not revoke permissions it already has. See docs/API_CONTRACTS.md for exact
 request/response fields, status codes, expiry and retry rules.
@@ -415,3 +417,19 @@ allows 10s and maintenance DDL 30s; production connect/statement limits remain
 3s. Startup root cause is unisolated; TestClient deprecation remains. Final
 catalog-only safety audit and test DB/role/credential/helper cleanup passed.
 No AI behavior, hosted CI, commit, push or Ticket 04 implementation is claimed.
+
+
+Phase 2 Ticket 04 adds authenticated owned appointment listing and separate
+review/confirmation endpoints for cancellation and rescheduling. Changes are
+allowed at exactly 24 hours remaining before the current appointment; less is
+rejected at review and confirmation. Rescheduling requires review of the current
+target fee and retains prior slot/price history. Immutable response snapshots
+ensure retries return their original result after later changes. See
+`docs/API_CONTRACTS.md` for filters, payloads and safe errors. Readiness requires
+`0007_management`; migrate only explicitly authorized synthetic databases.
+Ticket 04 local verification passed: 119 offline/unit, 119 PostgreSQL and 15
+serial CI tests, zero failures/errors/skips; format/lint/strict types and offline
+inventory passed. Seven behavioral evals remain pending, not quality passes.
+Final catalog-only safety audit and temporary DB/role/credential/helper cleanup
+passed. Hosted CI and phase exit await separately approved commit/push and
+exact-SHA Actions verification. See docs/PROGRESS.md for commands and evidence.

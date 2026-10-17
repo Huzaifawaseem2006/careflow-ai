@@ -190,3 +190,45 @@ Confirmation is a distinct authenticated submission of issued proof after review
 a model assertion or boolean cannot grant authority. Frontend/AI adapters remain
 out of scope. Cancellation/rescheduling/cutoff/pricing decisions remain pending
 for Ticket 04. No commit or push is authorized.
+
+
+## Phase 2 Ticket 04 appointment management — approved 2026-10-17
+
+Owner approved owned GET /appointments with stable (start_at, id) bounded cursor
+pagination, status and half-open date/time filters, persisted doctor/local time/
+timezone/status/accepted PKR fee, and enforced patient/clinic isolation.
+
+POST /appointments/{id}/cancel/proposals creates an action-bound review; separate
+POST /appointments/{id}/cancel confirms with only proposal_token. Reschedule uses
+POST /appointments/{id}/reschedule/proposals {slot_id} and separate
+POST /appointments/{id}/reschedule {proposal_token}. All writes require session,
+origin and CSRF; confirmations require Idempotency-Key and return 200.
+
+Allow changes at exactly 24 hours before the current appointment start; reject
+less, at proposal and authoritative confirmation time including lock/review delays.
+Reject cancelled/past bookings and same-slot targets without mutations. Review
+and reconfirm the authoritative target fee even when unchanged; update the same
+appointment and preserve prior slot/fee in audit history. Failed moves preserve
+the original booking and capacity.
+
+Reuse five-minute actor/action/payload-bound proposals and 24-hour authenticated
+exact retries, including existing expiry/conflict and consumed-proof rules. Store
+immutable committed response snapshots for booking and changes before enabling
+mutable appointment state. Revalidate identity, ownership, cutoff, resource state,
+versions and pricing within transactions; compatible deterministic locks and
+database constraints must preserve capacity, complete moves and history.
+
+Approved strict TDD seams: booking/management service, authenticated HTTP, real
+PostgreSQL constraints/transactions and independent-connection concurrency. Use
+only disposable databases; never modify careflow_ai. Full local regression and
+accurate failure/rerun/cleanup evidence required. Hosted CI/phase exit remain
+pending until separately approved commit/push and exact-SHA Actions verification.
+No AI/frontend/Phase 3 work, commit or push authorized.
+
+
+Ticket 04 implementation rationale: migration 0007_management backfills historical
+retry/audit snapshots before relaxing the booked-only update restriction. A
+monotonic appointment version prevents stale proposals surviving moves back to a
+previous slot. Identity and cancelled rows remain immutable; downgrade refuses
+recorded change history rather than discarding it. Reused existing infrastructure
+gate/strict evidence semantics; no new workflow engine or dependency was needed.

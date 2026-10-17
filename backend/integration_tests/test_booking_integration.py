@@ -933,7 +933,7 @@ def test_database_enforces_capacity_scope_and_immutable_accepted_pricing(
                 ({"accepted_fee": "-1.00"}, "23514"),
                 ({"accepted_fee": "1.001"}, "23514"),
                 ({"currency": "USD"}, "23514"),
-                ({"status": "cancelled"}, "23514"),
+                ({"status": "unknown"}, "23514"),
             ]
             for changes, code in cases:
                 with (
@@ -981,7 +981,7 @@ def test_booking_schema_round_trip_backfills_existing_patient_scope(
         engine.dispose()
 
 
-def test_application_role_can_book_but_cannot_mutate_snapshots_or_provision(
+def test_application_role_can_book_and_manage_but_cannot_mutate_identity_or_provision(
     clinic: UUID,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1020,6 +1020,8 @@ def test_application_role_can_book_but_cannot_mutate_snapshots_or_provision(
                 "GRANT INSERT ON appointments, booking_proposals, "
                 "booking_retries, booking_audit",
                 "GRANT UPDATE (appointment_id) ON booking_proposals",
+                "GRANT UPDATE (status, version, slot_id, doctor_id, doctor_name, "
+                "start_at, end_at, accepted_fee) ON appointments",
                 "GRANT UPDATE (id) ON patients, demo_identities, clinics, doctors, "
                 "specialties, doctor_schedules, slots",
             ):
@@ -1031,6 +1033,14 @@ def test_application_role_can_book_but_cannot_mutate_snapshots_or_provision(
             ),
         )
         with TestClient(app, base_url=ORIGIN) as client:
+            from careflow import booking
+
+            with owner.connect() as connection:
+                start = connection.scalar(
+                    select(slots.c.start_at).where(slots.c.id == clinic)
+                )
+            assert isinstance(start, datetime)
+            monkeypatch.setattr(booking, "now", lambda: start - timedelta(hours=25))
             headers = {**login(client), "Idempotency-Key": "application-role"}
             review = propose(client, clinic, headers)
             body = {"proposal_token": review["proposal_token"]}
@@ -1042,10 +1052,31 @@ def test_application_role_can_book_but_cannot_mutate_snapshots_or_provision(
                 client.post("/appointments", json=body, headers=headers).status_code
                 == 200
             )
+            identifier = client.post(
+                "/appointments", json=body, headers=headers
+            ).json()["id"]
+            assert client.get("/appointments").json()["items"][0]["id"] == identifier
+            with owner.connect() as connection:
+                target = connection.scalar(
+                    select(slots.c.id).where(slots.c.id != clinic)
+                )
+            for action in ("reschedule", "cancel"):
+                response = client.post(
+                    f"/appointments/{identifier}/{action}/proposals",
+                    json={"slot_id": str(target)} if action == "reschedule" else {},
+                    headers=headers,
+                )
+                assert response.status_code == 201, response.text
+                changed = client.post(
+                    f"/appointments/{identifier}/{action}",
+                    json={"proposal_token": response.json()["proposal_token"]},
+                    headers={**headers, "Idempotency-Key": action},
+                )
+                assert changed.status_code == 200, changed.text
         runtime = database_engine()
         try:
             for statement in (
-                "UPDATE appointments SET status = 'booked'",
+                "UPDATE appointments SET patient_id = patient_id",
                 "DELETE FROM appointments",
                 "DELETE FROM booking_audit",
                 "DELETE FROM booking_retries",
