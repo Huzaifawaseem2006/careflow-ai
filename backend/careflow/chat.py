@@ -9,8 +9,18 @@ from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from careflow.catalog import CatalogError
+from careflow.chat_booking import (
+    AVAILABILITY_TOOL,
+    BOOKING_TOOL,
+    AvailabilityArguments,
+    BookingArguments,
+    execute_availability,
+    execute_booking,
+    render_review,
+)
 from careflow.chat_contracts import (
     ChatResponse,
+    Contract,
     DoctorFact,
     Limits,
     Metrics,
@@ -31,8 +41,9 @@ from careflow.chat_tools import (
 DISCLOSURE = "Synthetic demo: fictional clinic data only. "
 ABSTENTION = (
     "I can help with catalog and fee lookup, and owned appointment lookup in "
-    "signed-in conversations. I have no verified policy or "
-    "availability evidence and cannot change appointments, "
+    "signed-in conversations, persisted availability and booking reviews. "
+    "Please specify an unambiguous doctor/date/time or select a real slot. "
+    "Chat cannot confirm appointments. I have no verified policy evidence and cannot "
     "reveal private instructions or secrets, diagnose, prescribe or assess urgency. "
     "For clinical assistance, contact a qualified clinician; for a possible emergency, "
     "contact local emergency services or seek urgent in-person care. "
@@ -46,6 +57,7 @@ async def run_chat(
     limits: Limits | None = None,
     *,
     private_token: str | None = None,
+    private_csrf: str | None = None,
     authorize: Callable[[], None] | None = None,
 ) -> ChatResponse:
     limits = limits or Limits()
@@ -53,7 +65,12 @@ async def run_chat(
     started = time.monotonic()
     result: ToolResult | None = None
     facts: list[ToolResult] = []
-    tools = (*TOOLS, APPOINTMENT_TOOL) if private_token is not None else TOOLS
+    public_tools = (*TOOLS, AVAILABILITY_TOOL)
+    tools = (
+        (*public_tools, APPOINTMENT_TOOL, BOOKING_TOOL)
+        if private_token is not None
+        else public_tools
+    )
     allowed = {tool.name for tool in tools}
     context_bytes = len(message.encode()) + sum(
         len(t.model_dump_json().encode()) for t in tools
@@ -114,20 +131,62 @@ async def run_chat(
                 call = reply.calls[0]
                 tool_started = time.monotonic()
                 try:
-                    if call.name == "get_my_appointments":
+                    if call.name in {
+                        "get_my_appointments",
+                        "propose_booking",
+                        "get_available_slots",
+                    }:
                         import json
 
-                        AppointmentArguments.model_validate_json(
+                        models: dict[str, type[Contract]] = {
+                            "propose_booking": BookingArguments,
+                            "get_available_slots": AvailabilityArguments,
+                            "get_my_appointments": AppointmentArguments,
+                        }
+                        models[call.name].model_validate_json(
                             json.dumps(call.arguments), strict=True
                         )
                     else:
                         validate_call(call)
                 except ValidationError:
                     result = ToolResult(name=call.name, status="invalid")
+                    if call.name in {"get_available_slots", "propose_booking"}:
+                        response.status = "clarification"
+                        response.text = (
+                            DISCLOSURE
+                            + "Please specify an unambiguous doctor, date and time "
+                            "with UTC offset, or select a returned slot for review. "
+                            "No booking or hold was created."
+                        )
+                        metrics.tools.append(
+                            ToolOutcome(name=call.name, status="invalid", latency_ms=0)
+                        )
+                        break
                 else:
+                    if call.name == "propose_booking":
+                        review = await run_in_threadpool(
+                            execute_booking, call, private_token, private_csrf
+                        )
+                        if authorize is not None:
+                            await run_in_threadpool(authorize)
+                        response.actions = [review]
+                        response.text = render_review(review)
+                        response.status = "answered"
+                        metrics.tools.append(
+                            ToolOutcome(
+                                name=call.name,
+                                status="ok",
+                                latency_ms=int(
+                                    (time.monotonic() - tool_started) * 1000
+                                ),
+                            )
+                        )
+                        break
                     try:
                         result = (
-                            await run_in_threadpool(
+                            await run_in_threadpool(execute_availability, call)
+                            if call.name == "get_available_slots"
+                            else await run_in_threadpool(
                                 execute_appointments, call, private_token
                             )
                             if call.name == "get_my_appointments"
@@ -163,6 +222,7 @@ async def run_chat(
         response.status = "limited"
     if response.status in {"unavailable", "limited"}:
         response.facts = []
+        response.actions = []
         metrics.input_tokens = None
         metrics.output_tokens = None
         response.text = (
@@ -173,6 +233,7 @@ async def run_chat(
     if len(response.model_dump_json().encode()) > limits.response_bytes:
         response.status = "limited"
         response.facts = []
+        response.actions = []
         response.text = (
             DISCLOSURE + "Response limit reached; please narrow your request."
         )
@@ -191,13 +252,31 @@ def render_facts(facts: list[ToolResult]) -> str:
     lines = [
         DISCLOSURE
         + (
-            "Validated lookup results; these do not establish availability or policies."
-            if any(f.appointments is not None for f in facts)
+            "Validated lookup snapshots; no hold or booking. "
+            "No verified policy evidence."
+            if any(f.appointments is not None or f.slots is not None for f in facts)
             else "Catalog results only; these do not establish availability, "
             "policies or doctor-service associations."
         )
     ]
     for fact in facts:
+        if fact.slots is not None:
+            lines.append(
+                f"Availability snapshot, no hold: page offset {fact.offset}, "
+                f"limit {fact.limit}."
+            )
+            for slot in fact.slots:
+                lines.append(
+                    f"{slot.id}: doctor {slot.doctor_id}; "
+                    f"{slot.start_at.isoformat()} to {slot.end_at.isoformat()} "
+                    f"{slot.timezone}."
+                )
+            if not fact.slots:
+                lines.append(
+                    "No matching slots on this page/range. Please clarify "
+                    "doctor/date/time or request another page."
+                )
+            continue
         if fact.appointments is not None:
             lines.append(
                 "Your current appointment results (a snapshot, not a new booking):"

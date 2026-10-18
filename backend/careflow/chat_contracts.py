@@ -90,6 +90,22 @@ class AppointmentPage(Contract):
     next_cursor: str | None = Field(max_length=100)
 
 
+class SlotFact(Contract):
+    id: UUID
+    clinic_id: UUID
+    doctor_id: UUID
+    start_at: AwareDatetime
+    end_at: AwareDatetime
+    version: int = Field(ge=1)
+    timezone: Literal["Asia/Karachi"] = "Asia/Karachi"
+
+    @model_validator(mode="after")
+    def valid_slot(self) -> Self:
+        if self.clinic_id != CLINIC["id"] or self.end_at <= self.start_at:
+            raise ValueError("Invalid slot")
+        return self
+
+
 class ToolResult(Contract):
     name: str
     status: Literal["ok", "empty", "ambiguous", "invalid", "unavailable"]
@@ -101,12 +117,40 @@ class ToolResult(Contract):
     appointments: AppointmentPage | None = Field(
         default=None, exclude_if=lambda v: v is None
     )
+    slots: list[SlotFact] | None = Field(
+        default=None, max_length=20, exclude_if=lambda v: v is None
+    )
 
 
 class ToolOutcome(Contract):
     name: str
     status: str
     latency_ms: int
+
+
+class BookingReviewSummary(Contract):
+    slot_id: UUID
+    doctor_id: UUID
+    clinic_id: UUID
+    doctor_name: str = Field(min_length=1, max_length=120)
+    start_at: AwareDatetime
+    end_at: AwareDatetime
+    timezone: Literal["Asia/Karachi"]
+    fee: Amount
+    currency: Literal["PKR"]
+
+    @model_validator(mode="after")
+    def valid_scope(self) -> Self:
+        if self.clinic_id != CLINIC["id"] or self.end_at <= self.start_at:
+            raise ValueError("Invalid review")
+        return self
+
+
+class BookingReview(Contract):
+    kind: Literal["booking_review"] = "booking_review"
+    proposal_token: str = Field(pattern=r"^[A-Za-z0-9_-]{43}$")
+    summary: BookingReviewSummary
+    expires_at: AwareDatetime
 
 
 class Metrics(Contract):
@@ -118,8 +162,9 @@ class Metrics(Contract):
     requested_model: str = "claude-sonnet-5-5"
     resolved_model: str | None = None
     sdk_version: str | None = None
-    prompt_version: Literal["context-v1"] = "context-v1"
-    tool_schema_version: Literal["2"] = "2"
+    # Historical owned responses retain their original version metadata on replay.
+    prompt_version: Literal["context-v1", "booking-v1"] = "booking-v1"
+    tool_schema_version: Literal["2", "3"] = "3"
 
 
 class ChatResponse(Contract):
@@ -127,7 +172,7 @@ class ChatResponse(Contract):
     status: Literal["answered", "clarification", "abstained", "unavailable", "limited"]
     text: str
     facts: list[ToolResult] = Field(default_factory=list)
-    actions: list[object] = Field(default_factory=list, max_length=0)
+    actions: list[BookingReview] = Field(default_factory=list, max_length=1)
     citations: list[object] = Field(default_factory=list, max_length=0)
     correlation_id: UUID = Field(default_factory=uuid4)
     metrics: Metrics = Field(default_factory=Metrics)

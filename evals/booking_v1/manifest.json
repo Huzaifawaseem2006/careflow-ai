@@ -1,0 +1,6 @@
+{
+  "dataset_version": "phase3-booking-v1",
+  "cases_sha256": "221e8b49c1e0feb18466119434463b8f22c4bbe73c6d68612630199467134a94",
+  "synthetic": true,
+  "held_out_frozen_before_execution": true
+}

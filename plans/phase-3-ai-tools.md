@@ -15,7 +15,15 @@ passes and 13 unchanged catalog passes (2 catalog-only cases remain pending).
 Focused checks overlap these counts; they are not additional distinct cases.
 Owner authorized one Ticket 02 implementation commit and normal push after final
 scoped review. Exact-SHA hosted status is recorded in the Ticket 02 Git handoff.
-Tickets 03–06, paid runs and additional commits/pushes are not authorized.
+Owner subsequently approved Ticket 03 and its four TDD seams/action-history
+mechanics. Availability and protected booking review integration are verified;
+Ticket 03 is resolved. Evidence: 175 PostgreSQL passes; 230 offline/backend/eval/CI
+passes plus an isolated passing recovery of one Windows-startup CI timeout, with
+unchanged limits; 8 new booking eval passes and unchanged context/catalog baseline.
+See the [handoff](../docs/PROGRESS.md) and [shared action contracts](../docs/BOOKING_CHAT.md).
+Owner then authorized one Ticket 03 implementation commit/push after final scoped
+review; exact-SHA Actions/ref results will be retained in the Git handoff record.
+Tickets 04–06, paid runs and further commits/pushes are not authorized.
 The six-ticket dependency structure is unchanged. See the approved
 [D10 mechanics](../.scratch/phase-3-ai-tools/d10-mechanics-review.md) and
 [conversation contracts](../docs/CONVERSATIONS.md).

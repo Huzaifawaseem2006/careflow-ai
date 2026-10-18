@@ -378,3 +378,23 @@ No DB transaction spans a provider call. At this D10 checkpoint only Ticket 02
 implementation was approved. Subsequent one-time Ticket 02 commit/push approval
 is recorded in PROGRESS; paid calls, extra commits and later tickets remain
 unauthorized.
+
+## Phase 3 Ticket 03 action boundary — 2026-10-18
+
+Owner approved Ticket 03 and four TDD seams: HTTPS chat/existing appointment
+endpoints; real orchestrator/tools/domain services on disposable PostgreSQL;
+mocked Anthropic HTTP; existing confirmation services with independent-connection
+races. Existing strict TDD/real DB/eval gates remain required. No paid call,
+commit, push or other ticket is approved.
+
+Owner explicitly approved returning raw booking proof only in the original
+protected action response. Persist a proof-free historical review marker with no
+executable actions; exact completed-turn replay returns that marker and cannot
+recover proof. A fresh turn obtains a fresh review if the action was lost. Ordinary
+completed turns retain immutable response replay. Existing proposal storage keeps
+hashed proof and versioned summary; no schema or authorization system changes.
+Stop the model loop immediately on review issuance. Auth/CSRF remain outside model
+context; live domain authority and final-release checks remain mandatory. Separate
+confirmation uses existing POST /appointments and its original proof/key retry
+semantics. Current state comes from authorized domain reads; operation replay is a
+historical snapshot. See docs/BOOKING_CHAT.md for contracts shared with 04/05.

@@ -291,6 +291,15 @@ def authorize_turn(token: str | None, turn: Turn) -> None:
 
 
 def finish(token: str | None, turn: Turn, result: ChatResponse) -> None:
+    # Proof is returned only to the current authenticated request. Historical
+    # reviews cannot be executable actions or regain proof through turn replay.
+    saved = result.model_copy(deep=True)
+    if saved.actions:
+        saved.actions = []
+        saved.text = (
+            "Historical booking review; no booking or hold. "
+            "Request a fresh review to obtain a new confirmation action."
+        )
     with transaction() as connection:
         check_turn(connection, token, turn)
         if result.status not in {"unavailable", "limited"}:
@@ -302,7 +311,7 @@ def finish(token: str | None, turn: Turn, result: ChatResponse) -> None:
             """),
                 {
                     "message": turn.message,
-                    "response": result.model_dump_json(),
+                    "response": saved.model_dump_json(),
                     "conversation": turn.conversation_id,
                     "id": turn.id,
                 },

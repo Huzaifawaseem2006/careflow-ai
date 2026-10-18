@@ -1,6 +1,6 @@
 # Proposed API and tool contracts
 
-Status: health/readiness, patient sessions and Phase 2 catalog/availability/booking/management are implemented. Phase 3 Ticket 01 adds public single-turn POST /chat and five read-only catalog/fee tools; see [exact chat contracts and limits](CHAT.md). Other chat, appointment-tool and retrieval workflows remain planned. No client or model assertion substitutes for server authorization.
+Status: health/readiness, patient sessions and Phase 2 clinic operations are implemented. Phase 3 adds [catalog chat](CHAT.md), [owned conversations and appointment reads](CONVERSATIONS.md), and Ticket 03 [availability and protected booking reviews](BOOKING_CHAT.md). Confirmation remains a separate authenticated appointment request. Cancellation/reschedule chat and retrieval remain planned. No client or model assertion substitutes for server authorization.
 
 ## Common rules
 
@@ -30,7 +30,7 @@ Approved explicit confirmation flow: `POST /appointments/proposals` or correspon
 | `POST /appointments/{id}/cancel` | Patient | Implemented: separate bound proof confirmation, atomic cancellation/history/retry; 200 result. |
 | `POST /appointments/{id}/reschedule/proposals` | Patient | Implemented: owned active appointment, current persisted target/fee review, no capacity hold. |
 | `POST /appointments/{id}/reschedule` | Patient | Implemented: separate bound proof confirmation, atomic same-appointment move/history/retry; 200 result. |
-| `POST /chat` | Public, same origin | Ticket 01: single turn, grounded catalog/fees; empty actions/citations; no private history |
+| `POST /chat` | Public, same origin | Single turn, grounded catalog/fees and persisted availability; empty actions/citations; no private history |
 | `POST /handoffs` | Authenticated patient | Persist owned queue request with consent; return actual ID/status |
 | Staff routes, precise paths TBD | Scoped staff/admin | Clinic assignment and explicit permissions for schedule, documents, escalations and redacted audit |
 

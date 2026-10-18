@@ -1,5 +1,116 @@
 # Progress and verification ledger
 
+## 2026-10-18 — Ticket 03 final Git review and authorization
+
+Owner explicitly authorized final scoped review, one implementation commit
+`feat: add AI booking review and confirmation`, and push to `origin/master` if
+review passes. This supersedes earlier no-Git-approval statements for this one
+commit/push only. No additional commit, Ticket 04 or paid Anthropic call is approved.
+
+Complete implementation/test/eval/documentation review retains **0 Standards / 0
+Spec actionable findings**. Application source is unchanged from the verified
+handoff. Reuse the actual **175 PostgreSQL passes and successful cleanup**, **230
+offline/CI passes plus one timeout recovered on an unchanged isolated retry**, and
+**8 booking behavioral passes**. Do not describe the offline evidence as one
+uninterrupted clean run. No full local suite is rerun for this Git milestone.
+
+Only the 22 Ticket 03 paths are eligible for staging; reports, logs, caches,
+credential material and generated/probe files remain excluded. The live remote,
+local HEAD and cached `origin/master` were verified at
+`e46b65e8cda5fbc4b06b10a80f937beac3940597` before commit. Restricted network access
+failed; normal-host read-only verification succeeded. Review the authorization
+documentation delta, exact index content and `git diff --cached --check` before
+the authorized commit.
+
+Final commit/push/ref/clean-tree and exact-SHA hosted Actions results will be saved
+in ignored `test-results/ticket03-git-ci.json` and reported to the owner. At this
+pre-commit checkpoint they remain pending; no hosted success is claimed. This
+updatable local record avoids an unauthorized second tracked documentation commit.
+
+## 2026-10-18 — Phase 3 Ticket 03 resolved: availability and booking reviews
+
+Owner approved Ticket 03 only, then explicitly approved four TDD seams and the
+protected-action/history exception before tests or implementation. Started on
+clean `master` at `e46b65e8cda5fbc4b06b10a80f937beac3940597`; implementation remains
+uncommitted. Historical statements below denying Ticket 03 approval are superseded
+for this implementation only. No paid call, commit, push or other ticket is approved.
+
+Implemented public persisted `get_available_slots`, authenticated proposal-only
+`propose_booking`, strict typed slot/review contracts and deterministic review text.
+Auth/CSRF stay outside model context. Stop immediately after review issuance;
+proof travels only in the original protected response. Stored/replayed turns retain
+a non-executable historical marker, with fresh review required if proof was lost.
+Existing appointment HTTP/domain services retain separate explicit confirmation,
+capacity, expiry, fee/version, idempotency and atomic proof/retry/audit authority.
+No schema, dependency, booking policy or confirmation endpoint changes.
+
+Added `backend/careflow/chat_booking.py`, PostgreSQL HTTP/tool/SDK tests,
+`evals/booking_behavior.py`, frozen `evals/booking_v1` and negative grader tests.
+Updated chat contracts/orchestration, conversation transport/history sanitation,
+Anthropic prompt, report version metadata and LF attributes. Shared action/error/
+reconciliation contracts for 04/05 are in [BOOKING_CHAT.md](BOOKING_CHAT.md), with
+API/chat/conversation docs, decisions, phase plan and ticket updated. Prompt/schema
+versions are `booking-v1`/`3`; legacy `context-v1`/`2` remain valid on stored replay.
+
+Executed verification, all on unchanged final application source:
+
+- `powershell.exe -NoProfile -File scripts/postgres-tests.ps1 test` on the normal
+  Windows host: **175 passed in 1255.97s**, zero failures/errors/skips, exit 0.
+  Covers auth/permissions, booking contention/proof/key races, maintenance/reset/
+  logout, rollback, migrations, runtime grants and new chat integration. Runner
+  reported **no new disposable databases remaining**. Safe output retained at
+  `test-results/ticket03-final-postgres-host.txt`.
+- Full `pytest backend/tests evals/tests ci_tests -q --tb=short -p no:cacheprovider
+  --basetemp test-results/ticket03-final-offline-host --junitxml
+  test-results/ticket03-final-offline-host.xml`: **230 passed, 1 failed in 579.90s**,
+  no errors/skips. The existing negative-lint CI subprocess hit its unchanged
+  120-second timeout; this is failed evidence, not a clean 231-pass run.
+- Diagnosed the CI artifact before retry: its positive companion passed all
+  checks, with **216 nested passes in 69.384s**. The timed-out negative child had
+  eight unrelated CLI startup timeouts and took 317.568s. No remaining child
+  Python processes or lint probes were found. Isolated unchanged negative CI test,
+  normal host, same 120-second limit: **1 passed in 110.03s**, exit 0; its report
+  confirms format 0 / deliberately failing lint 1 / types 0 / unit 0, with **216
+  nested passes in 62.685s**, no failures/errors/skips. Evidence is
+  `test-results/ticket03-ci-negative-retry-host.{txt,xml}` and nested reports.
+  This closes that gate while retaining the other 230 passing results, per the
+  execution-efficiency rule. Counts overlap; do not add nested/focused passes.
+  Evidence points to transient Windows process-startup delay; its host cause was
+  not fully isolated. No timeout, CI behavior or test criterion was weakened.
+- Full Ruff format/check and strict mypy: **passed, 84 files**; `pip check` passed.
+  Focused offline chat/SDK/grader checks: **59 passed**. Strict TDD recorded red
+  before green for review/confirmation separation, persisted availability,
+  malformed/range clarification, executable graders and legacy stored replay.
+  An early reset fixture mistakenly invoked account creation; corrected to the
+  existing reset operation and both revocation cases passed before broad checks.
+- Current-source real-path mocked reports: **8 booking passes** (6 dev, 2 held-out),
+  **8 context passes**, **13 catalog passes / 2 pending**, zero behavioral failures.
+  Context/catalog match Ticket 02's executed baseline; booking has no earlier
+  executed baseline. Reports: `test-results/ticket03-{booking,context,catalog}-evals.json`.
+  Booking graders check exact reviews, secret exclusion, bounded provider stops,
+  state deltas and preservation of prior booking rows; corrupted observations fail.
+  Dataset checksum/LF checks passed. These are scripted-provider backend behavior,
+  not live model-selection accuracy; usage/cost/live quality remain null.
+
+An earlier restricted-token full PostgreSQL attempt reached all tests but had two
+setup errors and crashed pytest cleanup with `WinError 5` on its temporary directory;
+even ACL inspection was denied. It is not passing evidence. The documented normal-
+host rerun above resolved it without changing the runner, saved credential, test
+selection or safeguards. Credential remains outside Git, unchanged. No real patient
+data or temporary password helper was introduced.
+
+Standards review: **0 actionable findings**. Spec review: **0 actionable findings**;
+the root review found the legacy-metadata compatibility gap, obtained a failing
+HTTP test, fixed it, and the Spec reviewer cleared that narrow delta. Full diff,
+untracked/generated/sensitive artifact, local link and whitespace review complete.
+No unresolved Ticket 03 acceptance blocker. Windows startup variability remains
+an operational test limitation; failed attempts are retained honestly above.
+Hosted exact-SHA CI was not run (no commit/push); paid live model/account quality,
+D01/D11 wording/reviewer and combined Phase 3 exit remain later release gates.
+Ready for owner review of code and documentation. Nothing staged, committed or
+pushed. Ticket 04 is the next suggested fresh-session task after separate approval;
+no cancellation/reschedule chat implementation was started.
+
 ## 2026-10-18 — Standalone agent-instruction efficiency audit
 
 Status: completed documentation maintenance, separate from implementation tickets.

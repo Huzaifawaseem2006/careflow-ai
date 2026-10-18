@@ -1,11 +1,14 @@
 # Grounded catalog chat — Phase 3 Ticket 01
 
 Ticket 02 adds [disclosed owned conversations and appointment lookup](CONVERSATIONS.md).
-The single-turn public behavior below remains public-only. Current prompt/schema
-versions are `context-v1`/`2`; the catalog argument schemas remain unchanged.
+Ticket 03 adds [persisted availability and protected booking reviews](BOOKING_CHAT.md).
+The single-turn path remains public-only. Current prompt/schema versions are
+`booking-v1`/`3`; historical `context-v1`/`2` remain replayable. Catalog argument
+schemas are unchanged.
 
-The public single-turn endpoint performs lookup, with no durable conversation content,
-availability lookup, private patient access, appointment writes, RAG or handoff.
+The public single-turn endpoint performs catalog and persisted availability lookup,
+with no durable conversation content, private patient access, appointment writes,
+RAG or handoff. Booking review is restricted to authenticated conversations.
 Only synthetic input belongs in this demo. Live account/model access and clinical
 wording approval remain unverified; deterministic tests are not model quality.
 
@@ -38,8 +41,9 @@ catalog results enter final facts. Rows use the public Phase 2 record fields:
 specialties have UUID id/clinic_id, name and city; doctors additionally carry
 specialty_id, consultation_fee and PKR currency; services carry fee and PKR
 currency. Extra output fields and foreign clinic IDs fail validation. Amounts are
-exact nonnegative two-place decimal strings, below PKR 10 billion. Actions and
-citations are always empty. Neither a model statement nor an incoming role can
+exact nonnegative two-place decimal strings, below PKR 10 billion. Ticket 03 adds
+typed slot facts and protected review actions; see [booking chat](BOOKING_CHAT.md).
+Citations remain empty. Neither a model statement nor an incoming role can
 replace these fields.
 
 The server renders all response text from validated catalog records or fixed
@@ -78,7 +82,8 @@ Catalog adapters call existing services, not HTTP routers or arbitrary SQL. Each
 read owns a short connection and runs off the async event loop. No transaction
 spans a provider wait. The service still fixes clinic scope and active/synthetic
 eligibility. A read already running when a deadline expires may finish under the
-existing SQL timeout; there are no mutation tools or automatic continuations.
+existing SQL timeout. Ticket 03's proposal-only tool persists hashed proof without
+an appointment or hold and stops the loop; no confirmation tool is exposed.
 
 ## Provider and limits
 

@@ -109,6 +109,7 @@ async def turn(
         provider,
         limits,
         private_token=token if claim.private else None,
+        private_csrf=request.headers.get("x-csrf-token") if claim.private else None,
         authorize=lambda: conversations.authorize_turn(token, claim),
     )
     await run_in_threadpool(conversations.finish, token, claim, result)

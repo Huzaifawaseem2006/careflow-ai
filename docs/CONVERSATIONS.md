@@ -2,7 +2,8 @@
 
 Synthetic operations only. Owner approved the concrete D10 mechanics and four
 TDD seams on 2026-10-18; see the [approved mechanics](../.scratch/phase-3-ai-tools/d10-mechanics-review.md).
-No booking/proposal tools, clinical decisions, staff access or frontend are added.
+Ticket 03 adds [booking reviews](BOOKING_CHAT.md); clinical decisions, staff access
+and frontend remain outside scope.
 Public single-turn `POST /chat` remains available without durable content.
 
 ## Disclosure, ownership and lifecycle
@@ -48,11 +49,13 @@ History returns the newest complete turns in ascending completion sequence, at
 most 20 and within 32 KiB; `truncated` discloses omitted older turns. Each contains
 `id`, `user_text`, and the server response snapshot. History and replay are records
 of past responses, not current appointment state. The nested response retains the
-version-1 authoritative envelope; actions/citations remain empty. Prompt version
-is now `context-v1`, tool schema version `2`, including public-path reports.
+version-1 authoritative envelope; citations remain empty. Ticket 03 live booking
+reviews carry protected actions; stored history/replay carries only a proof-free
+historical marker with empty actions. Prompt: `booking-v1`; tool schema: `3`,
+including public-path reports.
 
 Turn UUIDs are scoped to a conversation. Exact completed retries revalidate live
-ownership and return the immutable original response with both `replayed` and
+ownership and return the immutable stored response with both `replayed` and
 `historical` true, even if the provider is unavailable. Changed content under an
 existing UUID returns 409 `TURN_CONFLICT`. A live competing lease returns 409
 `TURN_BUSY`. An expired/stolen lease returns 409 `TURN_EXPIRED` to its old worker.
@@ -60,7 +63,8 @@ Provider failures/limits return safe 503 envelopes and save no partial pair.
 Failures release a valid lease; abandoned work expires after 90 seconds. Retrying
 that UUID can acquire a new fenced lease and completion sequence. A newer turn
 can also proceed after expiry. Read-only tools may run again on a reclaimed turn;
-there are no booking effects. Turn hashes/coordination metadata last only until
+proposals may persist hashed proof without booking or holding capacity. Completed
+reviews replay historical markers without new proof. Turn hashes last only until
 conversation deletion/expiry. Interrupted authorization failures may leave the
 finite lease until expiry; they cannot append or release private results.
 

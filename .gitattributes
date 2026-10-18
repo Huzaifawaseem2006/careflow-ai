@@ -2,3 +2,4 @@
 evals/cases.jsonl text eol=lf
 evals/catalog_v1/cases.jsonl text eol=lf
 evals/context_v1/cases.jsonl text eol=lf
+evals/booking_v1/cases.jsonl text eol=lf
