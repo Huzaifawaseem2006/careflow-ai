@@ -1,5 +1,97 @@
 # Progress and verification ledger
 
+## 2026-10-19 — Standalone tooling publication authorization
+
+After the local handoff below, the owner explicitly authorized final review of
+the 16 scoped changed/new files, one commit named
+`test: improve Windows test reliability and diagnostics`, and one push to
+`origin/master` if review passes. Review includes credentials/generated artifacts,
+database safeguards, documentation and the exact staged diff/whitespace. Reuse
+passing unchanged local evidence; no full-suite repeat is required. Record HEAD,
+tracking/live remote equality and the exact-commit Actions result under ignored
+`test-results/tooling-git-ci.json` and in the final handoff. Earlier no-publication
+statements below describe the prior approval checkpoint. No additional commit,
+Ticket 04, application change or paid call is authorized.
+
+## 2026-10-19 — Standalone PostgreSQL/Windows tooling handoff
+
+Owner approved Phase 2 after diagnosis, retaining all testing/security/Git/paid-call
+boundaries. Baseline is `46d17de` on master. This task does not start Ticket 04.
+Local specification/ticket: `.scratch/test-tooling-performance/`.
+
+Implemented fixed-label numeric stage timings, checkpointed atomically after each
+test, newline/flushed PostgreSQL progress and slowest-phase reporting. Timed real
+database creation/drop, in-process migrations/fixtures/catalog/accounts/scheduling,
+subprocesses and pytest setup/call/teardown. Numeric artifacts contain no SQL,
+parameters, test IDs, configuration or exceptions. Existing console URL/password
+redaction and fixed selectors remain. Profiler module discovery is cached once
+per session; all fixture calls retain their original arguments/results and scopes.
+
+Added a real private-temp create/write/list/delete preflight before runner database
+access and pytest collection, with normal-host guidance rather than ACL changes.
+Restricted-host check now fails in **2.05s**, exit 1, before tests/database work.
+Underlying mode-0700/restricted-token mismatch remains an execution-environment
+constraint; normal-host verification below passed. Small inaccessible preflight
+directories can require normal-host cleanup; no recursive cleanup is introduced.
+
+Windows CI subprocesses now run in a supervisor-owned kill-on-close Job Object,
+established before spawning children. POSIX uses an owned process group. Existing
+120-second execution limits and both complete positive/negative foundation runs
+remain; pipe draining after termination has a bounded five-second cleanup budget.
+Foundation reports include per-check durations and isolated nested temp/report
+paths. Real child/grandchild regression was red before containment, then green;
+matched final synthetic timeout measurement: **3.266s stdlib versus 1.019s
+contained**, both with a one-second execution deadline. The marker regression
+also proves the timed-out descendant cannot perform its delayed write.
+
+Migration-template prototype was tested and removed. Stabilized raw 24-case run:
+**120.45s**; cloned run: **119.56s**. Direct migration costs fell, but copying/
+teardown offset savings and 0.89s total difference is within host variance.
+Original per-test UUID/template0 lifecycle remains, including all migration and
+concurrency tests. Earlier 138.93s raw run included repeated profiler discovery;
+it is not a valid clone speedup baseline. Decisions and testing guidance explain
+the choice. No production pooling, hashing, dependencies or application changes.
+
+Final verification actually executed, serially in an idle checkout:
+
+- Full normal-host PostgreSQL runner: **175 passed in 1155.86s**, zero failures/
+  errors/skips; whole command 1161.44s, exit 0. **No new disposable databases
+  remain.** Prior same-count checkpoint was 1255.97s; the 100.11s difference is
+  observational, not attributable to a retained PostgreSQL optimization. Final
+  phase totals: setup 474.68s, call 627.91s, teardown 50.36s; inner categories
+  overlap these totals. Creation 154.47s, direct migrations 195.71s, drop 50.06s,
+  subprocesses 142.68s. Evidence: `test-results/tooling-diagnosis/final-postgres-host.txt`,
+  `final-postgres-host-time.json`, `final-postgres-stages.json` and the runner's
+  UUID `.timings.json` artifact. No full PostgreSQL suite was repeated.
+- Full offline/eval/CI regression: **237 passed in 167.65s**, zero failures/
+  errors/skips. Positive/negative CI wrapper cases: **56.52s / 63.24s**, within
+  unchanged 120s deadlines. Nested reports confirm all checks pass for the
+  positive run; the negative run records only the intentional lint failure,
+  with format/types/unit passing. Historical 579.90s run was 230 passes plus
+  one timeout, not a clean passing baseline. Counts overlap nested/focused runs.
+  Evidence: `test-results/tooling-final-offline-host.xml`, nested passed/failed
+  reports, and `test-results/tooling-diagnosis/final-offline-host.txt`.
+- Focused tooling before prototype removal: **29 passed in 9.68s**, including
+  real synthetic DPAPI/ACL/process lifecycle checks on both installed PowerShell
+  versions. Removing the prototype's raw-mode parameter case leaves 28 focused
+  cases; all are included in the final 237-pass regression. Synthetic clone
+  independence/raw-override checks: **3 passed**, cleanup passed; prototype tests
+  were removed with the rejected implementation, not from existing coverage.
+- Final-source positive foundation check confirms Ruff format/check, strict mypy
+  (88 source files) and complete backend/eval tests pass. Separate pip check
+  passed; dependency graph is unchanged. Git whitespace and local documentation
+  links are reviewed at handoff. No AI implementation changed; existing scripted
+  behavioral eval tests ran in the PostgreSQL/offline suites. No paid/live run.
+
+All local acceptance criteria are met. DPAPI script/storage workflow and fixture
+target/teardown safeguards remain; tests never target the primary careflow_ai
+database. Full-suite cost and transient host startup variance remain limitations;
+no repeatable PostgreSQL throughput gain is claimed. Hosted Linux Actions for this
+uncommitted diff is not run: no workflow changed and no commit/push is authorized.
+Reports/diagnostic artifacts remain ignored. This is a reviewable working-tree
+handoff; nothing staged, committed or pushed. Next step is owner review, not another
+ticket or a redundant full-suite rerun.
+
 ## 2026-10-18 — Ticket 03 final Git review and authorization
 
 Owner explicitly authorized final scoped review, one implementation commit

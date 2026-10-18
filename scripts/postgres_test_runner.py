@@ -12,6 +12,10 @@ import psycopg
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 
+# -I isolates this entry point, so import siblings without relying on cwd.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.test_support import check_private_temp  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -68,6 +72,7 @@ def child_environment(url: str) -> dict[str, str]:
     environment["TEST_DATABASE_URL"] = url
     environment["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     environment["PYTHONIOENCODING"] = "utf-8"
+    environment["PYTHONUNBUFFERED"] = "1"
     return environment
 
 
@@ -109,13 +114,16 @@ def run_tests(paths: list[str], url: str, password: str) -> int:
         "-m",
         "pytest",
         *(paths or ["backend/integration_tests"]),
-        "-q",
+        "-v",
         "-rs",
         "--tb=short",
         "-p",
         "no:cacheprovider",
         "--basetemp",
         str(temporary),
+        "--durations=15",
+        "--careflow-timings",
+        str(temporary.with_suffix(".timings.json")),
     ]
     # No raw-output files, JUnit, shell execution or password-bearing arguments.
     with subprocess.Popen(
@@ -140,6 +148,8 @@ def main() -> int:
         action = sys.argv[1]
         if action not in {"validate", "test"}:
             raise ValueError("Unsupported command")
+        if action == "test":
+            check_private_temp(ROOT / "test-results")
         before = disposable_names(url)
         if action == "validate":
             print("Local postgres maintenance credential validated.")
@@ -155,6 +165,12 @@ def main() -> int:
                 # Do not automatically delete resources left by another session.
                 raise RuntimeError("Cleanup incomplete")
             print("Maintenance catalog check: no new disposable databases remain.")
+    except RuntimeError as error:
+        if str(error).startswith("Private pytest temporary-directory access failed."):
+            print(str(error), flush=True)
+            return 1
+        print("PostgreSQL test runner failed; no secret details are logged.")
+        return 1
     except Exception:
         print(
             "PostgreSQL test runner failed; verify local server, credential "

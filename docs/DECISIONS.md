@@ -1,5 +1,34 @@
 # Decisions and PRD review
 
+## Standalone test tooling — approved scope, 2026-10-19
+
+Owner approved the Phase 2 tooling plan with unchanged test/security/Git/paid-call
+boundaries. Measure fixed-label elapsed stages without SQL, configuration, test
+parameters or secrets in numeric artifacts; retain redaction on console output.
+Check real private-temp access before database work and pytest collection. Use
+normal-host execution when restricted Windows tokens cannot access mode-0700
+directories; retain pytest/credential ACL protection and the existing DPAPI flow.
+
+Keep fresh template0 databases per test. A safe session-template prototype passed
+committed-state isolation and cleanup checks, but the matched 24-case raw run was
+120.45s versus cloned 119.56s. Migration savings were partly offset by copying and
+teardown, and 0.89s whole-run benefit is within host variation. Remove that
+prototype rather than retain lifecycle complexity without a meaningful measured
+win. The earlier 138.93s raw profile included per-test profiler discovery; cache
+that discovery once per session and do not misattribute its removal to cloning.
+
+CI behavior tests still execute both complete real foundation runs with their
+120-second deadlines. A Windows supervisor owns a kill-on-close Job Object before
+starting children, avoiding the spawn/assignment race. Killing the supervisor
+closes its last job handle and kills descendants that otherwise hold captured
+pipes open. POSIX uses a new process group; post-kill pipe draining has a bounded
+five-second cleanup budget. Containment failure fails closed. Keep per-run temp/
+report paths distinct and record each foundation check's duration and exit code.
+Production database pooling, authentication hashing, application functionality,
+mandatory suites and hosted CI triggers remain unchanged. After local verification,
+the owner separately approved one tooling commit and push after final scoped
+review; this does not activate the proposed routine commit/push policy.
+
 2026-10-14. Status labels: **approved** = explicitly chosen by owner; **proposed** = needs review; **open** = no selection. The owner approved the Phase 0 architecture with the MVP defaults below. Implementation tickets require individual approval; see progress for completed work.
 
 ## Permanent execution efficiency — approved 2026-10-18

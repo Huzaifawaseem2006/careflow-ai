@@ -44,3 +44,4 @@ mypy_path = "backend"
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
+addopts = ["-p", "scripts.pytest_support"]

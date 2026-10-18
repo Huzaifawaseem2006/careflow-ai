@@ -103,7 +103,8 @@ not export credentials for them. It supplies no application configuration.
 
 Native/connection failures return generic messages without exception details.
 Test stdout/stderr are piped through URL/password redaction before display; no
-raw output/JUnit files are written by this runner. Fresh pytest temporaries live
+raw output/JUnit files are written by this runner. Numeric timing summaries are
+saved separately as described below. Fresh pytest temporaries live
 under ignored `test-results/postgres-<UUID>`. Do not add tests that write secrets
 to files or transform them for display; output filtering is defense in depth for
 trusted tests, not a sandbox for malicious code. Do not enable `--showlocals`,
@@ -113,7 +114,71 @@ Missing, invalid, corrupt or inaccessible credentials fail without a password
 prompt; Codex should report the condition and ask the owner to run `setup` or
 `rotate` interactively. Never inspect/decrypt the saved credential for diagnosis.
 For WinError 5 from restricted Windows temp access, run the same command from
-ordinary local PowerShell or use authorized normal-host execution.
+ordinary local PowerShell or use authorized normal-host execution. The runner
+now checks private temporary-directory access before its first database
+connection; pytest also checks before collecting tests. A failed preflight exits
+nonzero with normal-host guidance. It does not indicate a bad credential and
+does not call for credential rotation. A restricted token may leave its small
+`test-results/private-preflight-<UUID>` directory inaccessible; inspect that exact
+directory from normal PowerShell if cleanup is needed. Never delete the entire
+`test-results` tree to recover.
+
+## Timings and progress
+
+The command and credential workflow are unchanged. The runner prints a flushed
+start line before each test and a verbose result on completion, followed by the
+15 slowest pytest phases. `PYTHONUNBUFFERED` and newline-delimited messages keep
+the two redacting output pipes responsive. A start without a result identifies
+the active test; it does not by itself prove a stall. Long subprocess tests can
+legitimately run up to their existing deadline.
+
+Each run writes `test-results/postgres-<UUID>.timings.json`. The atomic summary is
+updated after every completed test and at session finish. It contains only fixed
+stage names, counts and elapsed seconds: database create/drop, in-process
+migrations, fixture/catalog seeding, in-process account provisioning, scheduling,
+subprocess execution and pytest setup/call/teardown. No SQL, arguments, environment,
+database names, exception text, test parameters or connection configuration enter
+this file. CLI migration/provisioning costs appear under `subprocess`; in-process
+costs appear under their named stage. Categories overlap: setup/call/teardown
+include their inner stages, and subprocess work can include more setup. Do not
+sum all categories into a total. These wall-clock measurements include server
+and OS waiting, not only CPU work.
+
+For a reviewable log, capture the runner's already-redacted console stream:
+
+```powershell
+powershell.exe -NoProfile -File scripts/postgres-tests.ps1 test -TestPath backend/integration_tests/test_database_integration.py 2>&1 | Tee-Object -FilePath test-results/postgres-focused.txt
+$LASTEXITCODE # Preserve the runner status; Tee-Object is not the test verdict.
+```
+
+Use the same selector, code, host context and instrumentation for comparisons.
+Keep focused profiles separate from the required full gate. Do not infer a
+full-suite speedup from one test or an unusually fast host run. Whole-command
+time also includes PowerShell, helper startup and maintenance catalog checks.
+
+The October 19 tooling experiment measured the same 24 booking cases at
+120.45s with stabilized raw-database instrumentation and 119.56s with migrated
+clones. The 0.89s difference did not justify a more complex database lifecycle;
+the final harness retains fresh `template0` databases for every test. There is
+no clone switch, shared mutable test database or transaction rollback shortcut.
+The earlier 138.93s raw profile included repeated profiler module discovery;
+that discovery is now cached once per session, not repeated per test.
+
+Private pytest directories use mode `0700`. On Python 3.13/Windows this creates
+protected ACLs that can exclude the restricted execution token even though an
+ordinary inherited-permission directory is writable. Moving `--basetemp` alone
+does not fix that mismatch. Preflight exercises real create/write/list/delete
+operations with the same private mode; no ACL or credential protection is relaxed.
+
+CI behavior tests retain both real positive and negative foundation runs and
+their existing 120-second deadlines. Each nested unit run has its own report/temp
+paths, and the foundation report records elapsed time and exit status for all
+four checks. On Windows an internal supervisor joins a kill-on-close Job Object
+before spawning children; timeout closes the supervisor and terminates its
+descendants. On POSIX the caller owns and kills a new process group. Pipe draining
+after termination has a separate bounded five-second cleanup budget, not extra
+test execution time. Failure to establish Windows containment fails closed.
+No CI test is skipped or replaced by a smaller suite.
 
 ## Tooling verification
 

@@ -104,6 +104,8 @@ def test_real_test_subprocess_output_is_redacted(
     def start(command: list[str], **kwargs: object) -> subprocess.Popen[str]:
         assert URL not in " ".join(command)
         assert "--showlocals" not in command
+        assert "-v" in command and "--durations=15" in command
+        assert "--careflow-timings" in command
         # Replace only the test executable with a synthetic failing child.
         return original(  # type: ignore[call-overload,no-any-return]
             [
@@ -120,6 +122,30 @@ def test_real_test_subprocess_output_is_redacted(
     output = capsys.readouterr()
     assert "synthetic" not in output.out + output.err
     assert "redacted" in output.out
+
+
+def test_temp_preflight_fails_before_database_access(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("TEST_DATABASE_URL", URL)
+    monkeypatch.setattr(sys, "argv", ["runner", "test"])
+    calls: list[str] = []
+
+    def inaccessible(path: Path) -> None:
+        raise RuntimeError(
+            "Private pytest temporary-directory access failed. "
+            "Use normal-host execution."
+        )
+
+    def catalog(url: str) -> set[str]:
+        calls.append("catalog")
+        return set()
+
+    monkeypatch.setattr(runner, "check_private_temp", inaccessible)
+    monkeypatch.setattr(runner, "disposable_names", catalog)
+    assert runner.main() == 1
+    assert calls == []
+    assert "normal-host" in capsys.readouterr().out
 
 
 def test_runner_checks_cleanup_on_failed_tests(

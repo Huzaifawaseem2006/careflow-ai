@@ -6,12 +6,14 @@ import sys
 import tempfile
 from pathlib import Path
 
+from scripts.test_support import run_process
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_passing_checks_record_checkout_and_results(tmp_path: Path) -> None:
     report_path = tmp_path / "passed.json"
-    result = subprocess.run(
+    result = run_process(
         [
             sys.executable,
             str(ROOT / "scripts" / "check_foundation.py"),
@@ -19,8 +21,6 @@ def test_passing_checks_record_checkout_and_results(tmp_path: Path) -> None:
             str(report_path),
         ],
         cwd=ROOT,
-        capture_output=True,
-        text=True,
         timeout=120,
     )
 
@@ -39,6 +39,7 @@ def test_passing_checks_record_checkout_and_results(tmp_path: Path) -> None:
         "unit",
     }
     assert all(check["exit_code"] == 0 for check in report["checks"])
+    assert all(check["seconds"] >= 0 for check in report["checks"])
 
 
 def test_real_lint_failure_returns_nonzero_and_records_failure(tmp_path: Path) -> None:
@@ -50,7 +51,7 @@ def test_real_lint_failure_returns_nonzero_and_records_failure(tmp_path: Path) -
         source.write("import os\n")
         probe = Path(source.name)
     try:
-        result = subprocess.run(
+        result = run_process(
             [
                 sys.executable,
                 str(ROOT / "scripts" / "check_foundation.py"),
@@ -58,8 +59,6 @@ def test_real_lint_failure_returns_nonzero_and_records_failure(tmp_path: Path) -
                 str(report_path),
             ],
             cwd=ROOT,
-            capture_output=True,
-            text=True,
             timeout=120,
         )
     finally:
