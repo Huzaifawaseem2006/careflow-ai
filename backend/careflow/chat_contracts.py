@@ -4,7 +4,14 @@ from decimal import Decimal
 from typing import Annotated, Literal, Self
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, PlainSerializer, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    model_validator,
+)
 
 from careflow.fixtures import CLINIC
 
@@ -66,6 +73,23 @@ class ServiceFact(SpecialtyFact):
     currency: Literal["PKR"]
 
 
+class AppointmentFact(Contract):
+    id: UUID
+    doctor_id: UUID
+    doctor_name: str = Field(min_length=1, max_length=120)
+    start_at: AwareDatetime
+    end_at: AwareDatetime
+    status: Literal["booked", "cancelled"]
+    timezone: Literal["Asia/Karachi"]
+    accepted_fee: Amount
+    currency: Literal["PKR"]
+
+
+class AppointmentPage(Contract):
+    items: list[AppointmentFact] = Field(max_length=20)
+    next_cursor: str | None = Field(max_length=100)
+
+
 class ToolResult(Contract):
     name: str
     status: Literal["ok", "empty", "ambiguous", "invalid", "unavailable"]
@@ -74,6 +98,9 @@ class ToolResult(Contract):
     )
     limit: int = Field(default=20, ge=1, le=20)
     offset: int = Field(default=0, ge=0, le=10000)
+    appointments: AppointmentPage | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
 
 
 class ToolOutcome(Contract):
@@ -91,8 +118,8 @@ class Metrics(Contract):
     requested_model: str = "claude-sonnet-5-5"
     resolved_model: str | None = None
     sdk_version: str | None = None
-    prompt_version: Literal["catalog-v1"] = "catalog-v1"
-    tool_schema_version: Literal["1"] = "1"
+    prompt_version: Literal["context-v1"] = "context-v1"
+    tool_schema_version: Literal["2"] = "2"
 
 
 class ChatResponse(Contract):

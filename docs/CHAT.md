@@ -1,6 +1,10 @@
 # Grounded catalog chat — Phase 3 Ticket 01
 
-Implemented public single-turn lookup, with no durable conversation content,
+Ticket 02 adds [disclosed owned conversations and appointment lookup](CONVERSATIONS.md).
+The single-turn public behavior below remains public-only. Current prompt/schema
+versions are `context-v1`/`2`; the catalog argument schemas remain unchanged.
+
+The public single-turn endpoint performs lookup, with no durable conversation content,
 availability lookup, private patient access, appointment writes, RAG or handoff.
 Only synthetic input belongs in this demo. Live account/model access and clinical
 wording approval remain unverified; deterministic tests are not model quality.

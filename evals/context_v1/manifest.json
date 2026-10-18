@@ -1,0 +1,6 @@
+{
+  "dataset_version": "phase3-context-v1",
+  "cases_sha256": "caa9c6afdaa900842e7099b34b2d2d1c138f3ce924897efaa7fe164f29969ae0",
+  "synthetic": true,
+  "held_out_frozen_before_execution": true
+}

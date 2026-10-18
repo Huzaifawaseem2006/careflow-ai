@@ -10,6 +10,7 @@ from careflow.booking_api import router as booking_router
 from careflow.catalog import CatalogError
 from careflow.catalog_api import router as catalog_router
 from careflow.chat_api import router as chat_router
+from careflow.conversation_api import router as conversation_router
 from careflow.identity import IdentityError
 from careflow.identity_api import AuthBodyLimit, error_response
 from careflow.identity_api import router as identity_router
@@ -22,6 +23,7 @@ app.include_router(catalog_router)
 app.include_router(availability_router)
 app.include_router(booking_router)
 app.include_router(chat_router)
+app.include_router(conversation_router)
 
 
 @app.exception_handler(CatalogError)

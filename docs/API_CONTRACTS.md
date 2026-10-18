@@ -259,3 +259,10 @@ operation or proof returns 404 NOT_FOUND without private disclosure. Expired pro
 or started target returns 410 CONFIRMATION_EXPIRED. Stable 409 codes additionally
 include STATE_CHANGED, SLOT_UNAVAILABLE, PROPOSAL_CONSUMED, IDEMPOTENCY_CONFLICT,
 RETRY_EXPIRED, CHANGE_CUTOFF, APPOINTMENT_INACTIVE and NO_CHANGE.
+
+## Phase 3 Ticket 02 conversation routes
+
+See [owned conversation HTTP, retry, privacy and purge contracts](CONVERSATIONS.md).
+These add versioned disclosure, explicit-acceptance creation, owned bounded history,
+serialized turns and deletion. Existing appointment endpoints are unchanged;
+no model-callable confirmation or proposal tool is added in this ticket.

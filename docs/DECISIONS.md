@@ -336,3 +336,26 @@ backups cannot be securely erased by this workflow. Full phase-gate launchers
 remain separate from this deliberately bounded integration runner.
 This separately approved tooling task supersedes the preceding session-only
 credential deletion rule for this saved credential; retain it between sessions.
+
+## Phase 3 Ticket 02 D10 approval — 2026-10-18
+
+Owner approved the [concrete D10 mechanics and four TDD seams](../.scratch/phase-3-ai-tools/d10-mechanics-review.md)
+in this chat after selecting Ticket 02. Reuse ten-minute prelogin sessions for
+isolated guest history, deleting on sign-in/session removal with no transfer.
+Patient history belongs to patient/clinic across new authenticated sessions;
+logout/reset revoke access without deleting it. Explicit deletion is immediate;
+fixed 30-day conversation expiry denies access immediately and an operator-run
+bounded native purge supplies physical deletion at least daily. No scheduler,
+provider-deletion promise or handoff/audit exception is introduced.
+
+Use fenced 90-second turn leases and exact UUID/message retries. Store completed
+user/server text pairs, with private typed snapshots for authorized history/replay;
+omit historical private results and all SDK continuation from subsequent model
+context. This minimizes disclosure and forces current private reads. Serialize
+whole text pairs as untrusted user context rather than restoring historical tool
+authority. Abandoned read-only turns may rerun tools when reclaimed; their new
+completion sequence preserves ordering, while stale workers cannot save/release.
+No DB transaction spans a provider call. At this D10 checkpoint only Ticket 02
+implementation was approved. Subsequent one-time Ticket 02 commit/push approval
+is recorded in PROGRESS; paid calls, extra commits and later tickets remain
+unauthorized.

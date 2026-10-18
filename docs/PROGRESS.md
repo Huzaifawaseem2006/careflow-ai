@@ -1,5 +1,164 @@
 # Progress and verification ledger
 
+## 2026-10-18 — Ticket 02 authorized final Git review
+
+Owner explicitly approved one scoped implementation commit, with message
+`feat: add owned chat history and appointment lookup`, and normal push to
+`origin/master` only if final review passes. This supersedes the historical
+no-Git-approval statements below for this one commit/push. No Ticket 03, paid
+Anthropic calls or additional commits are approved.
+
+Reviewed all 28 changed/new files against clean start `3acce71`, including scope,
+correctness, secrets/artifacts and documentation consistency. Independent
+Standards and Spec axes each report zero actionable findings. Approved D10
+mechanics are preserved: live backend ownership/CSRF; isolated ten-minute guests
+without transfer; fixed patient retention; immediate owned deletion; fenced
+completion; daily operator purge; separate provider retention. No business code
+changed during this Git milestone. Reconfirmed the retained **151 PostgreSQL**
+passes, **224 backend/eval/CI** passes (JUnit independently checked), **8 context**
+mocked passes and **13 catalog passes/2 pending** with current source/data hashes.
+These overlapping eval/targeted counts are not additional distinct tests.
+
+A temporary read-only maintenance-catalog check, run through the approved saved
+credential runner, passed (**1 test in 0.55s**) and found **zero** `careflow_test_*`
+databases, not just zero new leftovers. It neither created nor deleted databases.
+Its temporary test source was removed; the safe count remains in ignored
+`test-results/ticket02-database-cleanup.json`. Saved credentials were unchanged.
+Live `origin/master` was independently verified at
+`3acce715ce992a5685e8ecfc84e3e5098ad47b41`; normal Windows network access was used
+after the restricted attempt could not connect.
+
+Review these documentation changes, stage only the explicit 28-file scope, then
+inspect the full index and run `git diff --cached --check` before committing.
+Final commit/ref/clean-tree/Actions results will be recorded in ignored
+`test-results/ticket02-git-ci.json` and reported to the owner. At this pre-commit
+checkpoint, the exact new SHA and hosted CI result are pending; no success is
+claimed. This updatable local record avoids an unapproved second tracked commit.
+
+## 2026-10-18 — Phase 3 Ticket 02 resolved: owned context and appointment reads
+
+Owner approved only Ticket 02, then explicitly approved all D10 mechanics and
+four TDD seams before implementation. Start/current HEAD remains `3acce71`;
+all 28 scoped files are uncommitted. The earlier pending/failed entries below
+are historical checkpoints, superseded by this completed verification.
+
+Implemented versioned pre-storage disclosure and acceptance, session-owned guest
+and patient/clinic-owned history, `0008_conversations` migration/readiness, bounded
+complete-pair context/history, fenced 90-second turns, immutable exact completed
+retries, owned deletion, fixed expiry/native physical purge, and current scoped
+`get_my_appointments`. Guest sign-in deletes history without transfer; patient
+logout/reset revoke access without deleting history. No DB transaction spans a
+provider wait. Historical private result data and SDK continuation/thinking are
+omitted from subsequent model context. Prompt/schema versions are `context-v1`/`2`.
+
+Files created: `backend/careflow/{conversations,conversation_api,conversation_purge}.py`,
+`backend/migrations/versions/0008_conversations.py`,
+`backend/integration_tests/test_conversations_integration.py`,
+`evals/context_behavior.py`, `evals/context_v1/{cases.jsonl,manifest.json}`,
+`evals/tests/test_context_behavior.py`, `docs/CONVERSATIONS.md`, and the approved
+`.scratch/phase-3-ai-tools/d10-mechanics-review.md`. Other modified files:
+`backend/tests/test_anthropic_provider.py`, chat orchestration/contracts/tools
+and Anthropic adapter, database readiness
+revision, identity body limiter, router registration, catalog report version
+metadata, `.gitattributes`, README, API/chat/decision/progress docs, phase plan
+and this ticket. No new dependencies or CI configuration changes.
+
+Actual final verification (zero failures/errors/skips in passing suites):
+
+- `powershell.exe -NoProfile -File scripts/postgres-tests.ps1 test`:
+  **151 passed in 901.49s**, exit 0, real disposable PostgreSQL. Includes auth,
+  booking permission/concurrency/idempotency, migration/readiness, runtime grants,
+  context isolation, simultaneous claims, deletion/logout/reset/expiry races,
+  lease reclamation/order/fencing, retry conflicts, purge/CLI and actual DB state.
+  Runner reported no new disposable databases remaining.
+- `.venv/Scripts/python -m pytest backend/tests evals/tests ci_tests -q --tb=short
+  -p no:cacheprovider --basetemp test-results/ticket02-final-offline --junitxml
+  test-results/ticket02-final-offline.xml`: **224 passed in 232.45s**, exit 0.
+  JUnit independently confirms 224 cases, zero failures/errors/skips. Both real
+  CI subprocess tests pass without changing their existing timeout or behavior.
+- After adding only safe report latency/call/usage metadata, reran the native
+  runner with `-TestPath backend/integration_tests/test_conversations_integration.py::test_versioned_context_evals_execute_real_http_tools_and_state_graders`:
+  **1 passed in 37.10s**, exit 0, no new disposable DBs. This overlaps the 151;
+  no application behavior changed after the full regressions.
+- Full Ruff format/check, strict mypy (**80 files**), pip check, dataset SHA/LF,
+  reviewed local Markdown links and diff whitespace checks: **passed**.
+- Current-source mocked reports: `test-results/ticket02-context-evals.json`
+  **8 passed/0 failed** (6 dev, 2 held-out), actual HTTPS/orchestrator/services/DB,
+  scripted provider; catalog report `test-results/ticket02-catalog-evals.json`
+  **13 passed/0 failed/2 pending**, unchanged from Ticket 01's public baseline.
+  The catalog-only runner leaves private/booking seeds pending; Ticket 02 private
+  ownership coverage is separate. New context coverage has no earlier executed
+  baseline. Reports retain source/data hashes and safe metrics, with usage/cost
+  and live model quality null. Dataset was unchanged by bug fixes; held-out labels
+  remain separate. The initial invalid-filter failure and review-found multi-turn
+  grader false-positive were fixed with failing-before-passing evidence.
+
+Completion reviews: Standards **0 open findings**; Spec **0 open findings** after
+the grader fix and reviewer confirmation. Early restricted-temp and concurrent
+runner failures are not passing evidence; serial normal-Windows reruns above
+close them without weakening gates. No saved credential rotation/deletion or
+temporary password helpers were used. No real patient data or paid/live calls.
+
+Operational boundaries: native purge is operator-run at least daily (no scheduler);
+runtime grants are documented, not applied to the main demo DB. Local deletion
+does not promise provider deletion. Hosted exact-SHA CI is **not run**, with no
+approved commit/push; live model/account quality and D01/D11 remain later release
+gates, not claimed by scripted success. Full Phase 3 exit is not established.
+No remaining Ticket 02 blocker. Next action: owner review of uncommitted code and
+documentation. No staging, commit, push or other ticket was started; Ticket 03
+requires a separately approved fresh session.
+
+## 2026-10-18 — Ticket 02 implementation; final regression in progress
+
+Owner approved the D10 mechanics and all four TDD seams after the initial review
+checkpoint below. Implemented disclosed owned guest/patient conversations,
+`0008_conversations` migration/readiness, fenced ordered turns and exact retries,
+bounded follow-ups/history, owned deletion/expiry/native purge, and current scoped
+appointment lookup. Guest sign-in removes history without transfer; patient
+logout/reset revoke access while retaining history. Historical private result
+data and SDK continuation are excluded from subsequent provider context.
+
+Added real PostgreSQL HTTP/concurrency/permission/expiry/migration tests, mocked
+SDK context coverage, and immutable `phase3-context-v1` dataset/graders. Contracts,
+grants and operator purge workflow are in `docs/CONVERSATIONS.md`; provider prompt
+and tool schema versions advance to `context-v1`/`2`. No dependency/CI changes,
+paid calls, staging, commit, push or other ticket implementation.
+
+Evidence so far: focused conversation suite **21 passed in 108.55s**, runner exit
+0 and no new disposable DBs; earlier chat/SDK/grader focused run **56 passed**;
+final strengthened grader/SDK run **38 passed in 24.85s** (overlapping coverage).
+New context report records **8 passed**, no model quality/cost measurement. The
+first context run was **7 passed/1 failed** on invalid-date correction; fixed
+semantic validation without changing the dataset. Final spec review caught a
+multi-turn grader false-positive; five failing regressions preceded the fix and
+the reviewer confirmed closure. Standards and Spec now have zero open findings.
+
+Full offline attempt: **217 passed, 2 failed in 407.47s**; both failures are the
+existing real CI subprocess tests exceeding their 120s timeout. Full integration
+attempt reached the end but encountered a test failure/two errors and pytest
+session-finish `WinError 5` on its temporary directory, preventing final diagnostic
+summary; it is not passing evidence. Its runner reported no new disposable DBs.
+An earlier overlapping runner invocation also failed its catalog comparison;
+subsequent clean focused runs completed without new leftovers. Do not count these
+failed commands as passes. Following POSTGRES_TESTING.md, rerun final checks
+serially with normal Windows execution; results remain pending at this entry.
+The saved credential remains unchanged. Ticket acceptance stays unverified until
+required final checks pass; no scope reduction or next ticket is authorized.
+
+## 2026-10-18 — Phase 3 Ticket 02: required mechanics review pending
+
+Owner clarified Ticket 02, authorizing only that implementation in this session,
+with no commit/push or next ticket. Inspected clean `3acce71`, actual ticket/spec,
+phase plan, relevant decisions and chat/provider/session/listing source.
+Prepared `.scratch/phase-3-ai-tools/d10-mechanics-review.md` with concrete guest
+ownership/transitions, patient retention/deletion/purge, fenced turns/retries,
+bounded context and proposed TDD seams. These are proposals, not approvals.
+Ticket's explicit D10 gate and invoked TDD skill's seam gate are pending owner
+review. No application code, migrations, tests, persistence or paid calls added.
+Tests/evals not run (documentation proposal only); implementation acceptance
+criteria remain unverified. Next: owner approval or edits to the proposal, then
+continue Ticket 02 only. No commit or push occurred.
+
 ## 2026-10-16 — Ticket 06 resolved: offline eval infrastructure
 
 Started clean on `master` at `22cf968` (`feat: implement secure synthetic patient sessions`); actual Git history and issue status confirm Tickets 01–05 complete/committed, superseding the previous pre-commit handoff. Owner explicitly approved only Ticket 06. Read implement guidance and scoped phase/eval/ticket/source context; used focused tests for this infrastructure slice, with no auth/booking/AI production changes.

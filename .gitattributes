@@ -1,3 +1,4 @@
 # Dataset checksum is over exact bytes; preserve them across Windows/Linux checkouts.
 evals/cases.jsonl text eol=lf
 evals/catalog_v1/cases.jsonl text eol=lf
+evals/context_v1/cases.jsonl text eol=lf

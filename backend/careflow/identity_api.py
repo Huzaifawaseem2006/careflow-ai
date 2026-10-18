@@ -37,6 +37,8 @@ class AuthBodyLimit:
             or not (
                 scope["path"].startswith("/auth/")
                 or scope["path"] == "/chat"
+                or scope["path"] == "/conversations"
+                or scope["path"].startswith("/conversations/")
                 or scope["path"] == "/appointments"
                 or scope["path"].startswith("/appointments/")
             )

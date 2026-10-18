@@ -7,8 +7,18 @@ mocked behavioral passes (2 later-ticket cases pending; counts overlap).
 Ticket 01 is resolved; evidence is tracked in the ticket and progress log.
 Owner subsequently approved one implementation commit and normal push, subject to
 final staged review; hosted verification is recorded via the Ticket 01 handoff.
-The remaining five tickets, paid runs and additional commits/pushes are not
-authorized. The six-ticket dependency structure is unchanged.
+Owner separately approved Ticket 02 implementation and its concrete D10 mechanics
+and four TDD seams on 2026-10-18. Owned history, private appointment reads and
+native purge are implemented and Ticket 02 is resolved: 151 full PostgreSQL
+integration passes, 224 full offline/backend/eval/CI passes, 8 new mocked context
+passes and 13 unchanged catalog passes (2 catalog-only cases remain pending).
+Focused checks overlap these counts; they are not additional distinct cases.
+Owner authorized one Ticket 02 implementation commit and normal push after final
+scoped review. Exact-SHA hosted status is recorded in the Ticket 02 Git handoff.
+Tickets 03–06, paid runs and additional commits/pushes are not authorized.
+The six-ticket dependency structure is unchanged. See the approved
+[D10 mechanics](../.scratch/phase-3-ai-tools/d10-mechanics-review.md) and
+[conversation contracts](../docs/CONVERSATIONS.md).
 Shared requirements: [Phase 3 spec](../.scratch/phase-3-ai-tools/spec.md).
 
 ## Entry and sequence
@@ -69,10 +79,12 @@ results populate typed action summaries; model narration grants no authority.
 Retain D10's disclosed PostgreSQL history, bounded context, serialized turns and
 30-day synthetic-history direction as reaffirmed by the owner. Earlier planning
 did not settle guest ownership/transfer, purge/deletion timing or exceptions.
-Ticket 02 must present these concrete mechanics for approval before storage; do
-not pretend they were approved. No implicit guest transfer or new handoff/audit
-retention exception is authorized. Chat deletion cannot delete appointment,
-proposal, retry or audit history.
+The owner subsequently approved Ticket 02's
+[concrete mechanics](../.scratch/phase-3-ai-tools/d10-mechanics-review.md) before
+storage implementation: isolated ten-minute guests, no transfer, fixed patient
+expiry, immediate owned deletion and operator-run physical purge at least daily.
+No new handoff/audit retention exception is authorized. Chat deletion cannot
+delete appointment, proposal, appointment retry or audit history.
 
 Use ANTHROPIC_API_KEY in server process environment or an explicitly loaded
 Git-ignored local file. Existing .env/.env.* ignore rules apply; examples contain
@@ -142,7 +154,8 @@ continuation/disclosure criteria, 03–05's proof-exclusion/failure criteria and
 06's live/usage/cost evidence. Six tickets and dependency edges stay unchanged.
 Existing service seams need no standalone prefactoring ticket. Update actual
 ticket/progress/contracts and material decisions at each completion, recording
-executed results and blockers. Next: individually approve 01 in a fresh session.
+executed results and blockers. Current: owner review of Ticket 02; Ticket 03 requires
+a separately approved fresh session after Ticket 02 handoff.
 
 ## Official sources checked 2026-10-18
 

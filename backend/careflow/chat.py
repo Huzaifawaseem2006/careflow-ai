@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 
 from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
@@ -18,12 +19,20 @@ from careflow.chat_contracts import (
     ToolResult,
 )
 from careflow.chat_provider import Provider, ProviderError
-from careflow.chat_tools import ARGUMENTS, TOOLS, execute_catalog, validate_call
+from careflow.chat_tools import (
+    APPOINTMENT_TOOL,
+    TOOLS,
+    AppointmentArguments,
+    execute_appointments,
+    execute_catalog,
+    validate_call,
+)
 
 DISCLOSURE = "Synthetic demo: fictional clinic data only. "
 ABSTENTION = (
-    "I can help with catalog and fee lookup only. I have no verified policy or "
-    "availability evidence and cannot access patient records, change appointments, "
+    "I can help with catalog and fee lookup, and owned appointment lookup in "
+    "signed-in conversations. I have no verified policy or "
+    "availability evidence and cannot change appointments, "
     "reveal private instructions or secrets, diagnose, prescribe or assess urgency. "
     "For clinical assistance, contact a qualified clinician; for a possible emergency, "
     "contact local emergency services or seek urgent in-person care. "
@@ -32,15 +41,22 @@ ABSTENTION = (
 
 
 async def run_chat(
-    message: str, provider: Provider, limits: Limits | None = None
+    message: str,
+    provider: Provider,
+    limits: Limits | None = None,
+    *,
+    private_token: str | None = None,
+    authorize: Callable[[], None] | None = None,
 ) -> ChatResponse:
     limits = limits or Limits()
     metrics = Metrics(requested_model=limits.model)
     started = time.monotonic()
     result: ToolResult | None = None
     facts: list[ToolResult] = []
+    tools = (*TOOLS, APPOINTMENT_TOOL) if private_token is not None else TOOLS
+    allowed = {tool.name for tool in tools}
     context_bytes = len(message.encode()) + sum(
-        len(t.model_dump_json().encode()) for t in TOOLS
+        len(t.model_dump_json().encode()) for t in tools
     )
     response = ChatResponse(
         status="abstained", text=DISCLOSURE + ABSTENTION, metrics=metrics
@@ -51,7 +67,11 @@ async def run_chat(
                 if context_bytes > limits.context_bytes:
                     raise TimeoutError()
                 metrics.provider_calls += 1
-                reply = await provider.complete(message, TOOLS, result, limits)
+                if authorize is not None:
+                    await run_in_threadpool(authorize)
+                reply = await provider.complete(message, tools, result, limits)
+                if authorize is not None:
+                    await run_in_threadpool(authorize)
                 context_bytes += len(reply.model_dump_json().encode())
                 if (
                     context_bytes > limits.context_bytes
@@ -87,19 +107,32 @@ async def run_chat(
                             else "answered"
                         )
                     break
-                if len(reply.calls) != 1 or reply.calls[0].name not in ARGUMENTS:
+                if len(reply.calls) != 1 or reply.calls[0].name not in allowed:
                     raise ProviderError()
                 if len(metrics.tools) >= limits.tool_calls:
                     raise TimeoutError()
                 call = reply.calls[0]
                 tool_started = time.monotonic()
                 try:
-                    validate_call(call)
+                    if call.name == "get_my_appointments":
+                        import json
+
+                        AppointmentArguments.model_validate_json(
+                            json.dumps(call.arguments), strict=True
+                        )
+                    else:
+                        validate_call(call)
                 except ValidationError:
                     result = ToolResult(name=call.name, status="invalid")
                 else:
                     try:
-                        result = await run_in_threadpool(execute_catalog, call)
+                        result = (
+                            await run_in_threadpool(
+                                execute_appointments, call, private_token
+                            )
+                            if call.name == "get_my_appointments"
+                            else await run_in_threadpool(execute_catalog, call)
+                        )
                     except (CatalogError, ValidationError):
                         metrics.tools.append(
                             ToolOutcome(
@@ -156,10 +189,30 @@ async def run_chat(
 
 def render_facts(facts: list[ToolResult]) -> str:
     lines = [
-        DISCLOSURE + "Catalog results only; these do not establish availability, "
-        "policies or doctor-service associations."
+        DISCLOSURE
+        + (
+            "Validated lookup results; these do not establish availability or policies."
+            if any(f.appointments is not None for f in facts)
+            else "Catalog results only; these do not establish availability, "
+            "policies or doctor-service associations."
+        )
     ]
     for fact in facts:
+        if fact.appointments is not None:
+            lines.append(
+                "Your current appointment results (a snapshot, not a new booking):"
+            )
+            for appointment in fact.appointments.items:
+                lines.append(
+                    f"{appointment.id}: {appointment.doctor_name}; "
+                    f"{appointment.start_at.isoformat()} {appointment.timezone}; "
+                    f"{appointment.status}; PKR {appointment.accepted_fee:.2f}."
+                )
+            if not fact.appointments.items:
+                lines.append("No matching appointments in this page/range.")
+            if fact.appointments.next_cursor:
+                lines.append("More results are available using the returned cursor.")
+            continue
         lines.append(f"{fact.name}: page offset {fact.offset}, limit {fact.limit}.")
         if fact.status == "empty":
             lines.append(

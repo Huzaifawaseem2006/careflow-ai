@@ -452,7 +452,8 @@ See docs/PROGRESS.md for commands and evidence.
 PKR fee lookup through five bounded read-only tools. See [chat contracts and
 runtime configuration](docs/CHAT.md). Chat is disabled by default; setting an
 API key alone does not enable it or authorize spending. Never submit real patient
-data. No conversation persistence, appointment chat, retrieval or frontend is added.
+data. Ticket 02 adds [owned history and private appointment lookup](docs/CONVERSATIONS.md)
+through separate disclosed conversation routes. Public chat remains single-turn.
 
 Mocked behavior uses the same orchestrator and real catalog services, with a
 disposable PostgreSQL database and no Anthropic calls:

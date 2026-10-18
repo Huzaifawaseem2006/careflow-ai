@@ -1,13 +1,15 @@
 """Strict read-only tools over existing authoritative catalog services."""
 
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from careflow.catalog import CatalogKind, catalog_connection, read_catalog
 from careflow.chat_contracts import (
+    AppointmentFact,
+    AppointmentPage,
     Contract,
     DoctorFact,
     ServiceFact,
@@ -16,6 +18,7 @@ from careflow.chat_contracts import (
     ToolDefinition,
     ToolResult,
 )
+from careflow.management import ListingFilters, list_appointments
 
 QueryText = Annotated[str, Field(min_length=1, max_length=120, pattern=r"\S")]
 
@@ -99,4 +102,61 @@ def execute_catalog(call: ToolCall) -> ToolResult:
         data=[model.model_validate(row) for row in rows],
         limit=arguments.limit if isinstance(arguments, SearchArguments) else 1,
         offset=arguments.offset if isinstance(arguments, SearchArguments) else 0,
+    )
+
+
+class AppointmentArguments(Contract):
+    limit: int = Field(ge=1, le=20)
+    cursor: Annotated[str, Field(max_length=100)] | None
+    status: Literal["booked", "cancelled"] | None
+    start_at: Annotated[str, Field(max_length=40)] | None
+    end_at: Annotated[str, Field(max_length=40)] | None
+
+    @model_validator(mode="after")
+    def valid_filters(self) -> "AppointmentArguments":
+        ListingFilters.model_validate(self.model_dump())
+        return self
+
+
+APPOINTMENT_TOOL = ToolDefinition(
+    name="get_my_appointments",
+    description="Read the currently authenticated patient's own appointments. "
+    "Use current results, never historical status. No identity arguments or writes. "
+    "Dates require explicit UTC offset; ranges are half-open; cursor is opaque.",
+    schema_=AppointmentArguments.model_json_schema(),
+)
+
+
+def execute_appointments(call: ToolCall, token: str | None) -> ToolResult:
+    arguments = AppointmentArguments.model_validate_json(
+        json.dumps(call.arguments), strict=True
+    )
+    filters = ListingFilters.model_validate(arguments.model_dump())
+    page = list_appointments(token, filters)
+    from fastapi.encoders import jsonable_encoder
+
+    rows = page["items"]
+    if not isinstance(rows, list):
+        raise ValueError("Invalid appointment page")
+    items = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("Invalid appointment")
+        items.append(
+            AppointmentFact.model_validate_json(
+                json.dumps(
+                    jsonable_encoder(
+                        {key: row[key] for key in AppointmentFact.model_fields}
+                    )
+                )
+            )
+        )
+    result = AppointmentPage.model_validate(
+        {"items": items, "next_cursor": page["next_cursor"]}
+    )
+    return ToolResult(
+        name=call.name,
+        status="ok" if items else "empty",
+        limit=arguments.limit,
+        appointments=result,
     )
