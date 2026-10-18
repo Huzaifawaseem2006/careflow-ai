@@ -85,7 +85,12 @@ The suite requires CREATEDB and extension-install privileges; identity tests als
 create/remove a temporary login role and require CREATEROLE. Validation proves
 connectivity, not all these permissions or extension availability.
 
-Run serially in an idle checkout. The runner compares disposable database names
+Run serially in an idle checkout; do not overlap database runs with each other,
+CI subprocess regressions, other checks or source edits. Use `-TestPath` during
+implementation and the full integration suite when required by the final task
+gate. A failed run needs diagnosis before retrying; inspect its exit status and
+cleanup evidence, and preserve all target/teardown checks when rerunning.
+The runner compares disposable database names
 before/after and returns failure if new leftovers remain; it never deletes them
 on its own. Existing leftovers are not removed or certified clean. The fixture's
 own teardown verifies each database drop. Forced process termination can prevent

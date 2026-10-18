@@ -2,6 +2,25 @@
 
 2026-10-14. Status labels: **approved** = explicitly chosen by owner; **proposed** = needs review; **open** = no selection. The owner approved the Phase 0 architecture with the MVP defaults below. Implementation tickets require individual approval; see progress for completed work.
 
+## Permanent execution efficiency — approved 2026-10-18
+
+Owner authorized a standalone instruction audit, with no Phase 3 implementation.
+`AGENTS.md` remains the workflow source of truth across all future tasks:
+selective context reuse, focused implementation checks followed by full applicable
+final regression, safe concurrency, batched routine handoff updates and one
+comprehensive final Git review. README distinguishes individual checks from the
+aggregate runner; database guidance retains serial idle-checkout execution.
+This clarifies the accelerated workflow and supersedes historical per-edit
+documentation or unconditional broad-read instructions; historical decisions
+and verification evidence remain intact.
+
+Efficiency does not override ticket acceptance criteria, strict TDD or required
+seam approvals, security/clinical boundaries, disposable-database safeguards,
+phase/release gates, invoked skills or higher-priority instructions. Every commit,
+push and paid API run still needs explicit approval. The proposed routine Git
+policy below remains unapproved. Trade-off: only independent checks can overlap;
+database and CI subprocess suites retain their stricter idle-checkout rules.
+
 ## Approved MVP decisions
 
 - One fictional clinic in Karachi, Pakistan; `Asia/Karachi` timezone, PKR fees, English first. Arabic and Urdu are post-MVP.

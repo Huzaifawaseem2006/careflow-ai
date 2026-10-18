@@ -1,5 +1,50 @@
 # Progress and verification ledger
 
+## 2026-10-18 — Standalone agent-instruction efficiency audit
+
+Status: completed documentation maintenance, separate from implementation tickets.
+Owner authorized auditing/consolidating project workflow instructions only; no
+Phase 3 Ticket 02/03 implementation, application behavior, credential changes,
+paid API calls, staging, commit or push is included.
+
+Reviewed root AGENTS, agent reference files, relevant progress/decision entries,
+current Phase 3 plan/spec sections, README testing guidance, PostgreSQL workflow,
+eval cadence and the foundation runner/configuration. Initial Git status was
+clean. Inspection stayed within workflow/supporting files, not the application
+codebase. Applied the writing-for-agents skill.
+
+Changed `AGENTS.md`, `README.md`, `docs/POSTGRES_TESTING.md`,
+`docs/agents/triage-labels.md`, `docs/DECISIONS.md` and this ledger. AGENTS now
+defines selective context reuse, concise meaningful updates, focused-to-final
+testing, diagnosis before retries, safe concurrency, batched handoffs and final
+Git review. README clarifies aggregate/individual check overlap and historical
+examples; triage guidance explicitly permits the existing resolved completion
+state. No new instruction file or phase-plan change was needed.
+
+Preserved healthcare/backend authority boundaries, synthetic data, acceptance
+criteria, strict TDD and required seam approvals, database target/cleanup controls,
+CI idle-checkout restrictions, applicable eval and phase/release gates, explicit
+commit/push/paid-run approval and higher-priority/skill requirements. Historical
+decisions/evidence are retained; the new DECISIONS entry explains precedence.
+
+Verification: final six-file diff and safeguard/contradiction review passed;
+`git diff --check` passed; local Markdown-link targets and heading-fragment
+checks for changed files passed. No configured Markdown linter was found.
+Application tests/evals, PostgreSQL and hosted CI were intentionally not run:
+only Markdown changed and no executable behavior or AI surface changed.
+No unresolved audit blocker. The owner subsequently approved these six files,
+one commit `docs: optimize agent development workflow`, and push to
+`origin/master` after final scoped review. Review passed: only the six Markdown
+files are changed; no application code, Ticket 02 implementation, secrets or
+unrelated files are included. Local HEAD and live origin/master both equal
+`3eb0ebd7e8b5a4ba7c1a2dc987ead8b7574949c3` before this commit. Restricted
+network access failed; normal-host read-only remote verification succeeded.
+Review the exact index and require `git diff --cached --check` before committing.
+Final SHA/remote/clean-tree/exact-commit Actions results will be retained in
+ignored `test-results/workflow-audit-git-ci.json` and reported to the owner;
+no additional tracked commit is authorized. No Ticket 03 or paid API run is
+approved. Any Phase 3 implementation remains a separate task in a fresh session.
+
 ## 2026-10-18 — Ticket 02 authorized final Git review
 
 Owner explicitly approved one scoped implementation commit, with message

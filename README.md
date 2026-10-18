@@ -30,7 +30,14 @@ Ticket 02 adds [GitHub Actions](.github/workflows/foundation.yml) on pushes, pul
 .venv\Scripts\python scripts/check_foundation.py
 ```
 
-The entry point runs the four checks above, returns nonzero if any fail, and writes `test-results/foundation.json` with the checked-out Git revision, working-tree dirty flag, overall result and each check's exit code. It also prints the report; GitHub Actions copies it to the job summary even when checks fail. Run from a Git checkout at the repository root. An uncommitted local result is identified by `dirty: true`, not proof of a clean committed revision.
+The entry point runs format/lint/types plus backend and eval unit tests, returns nonzero if any fail, and writes `test-results/foundation.json` with the checked-out Git revision, working-tree dirty flag, overall result and each check's exit code. It also prints the report; GitHub Actions copies it to the job summary even when checks fail. Run from a Git checkout at the repository root. An uncommitted local result is identified by `dirty: true`, not proof of a clean committed revision.
+
+Use [AGENTS.md](AGENTS.md) for check selection and execution order. The commands
+above are individual checks and an aggregate entry point, not a requirement to
+run both back-to-back. Reuse passing aggregate evidence for the checks it covers;
+run the separate CI regression suite serially as described below. Dated ticket
+results and setup examples elsewhere in this README are historical evidence or
+operator references, not additional routine steps for every session.
 
 The subprocess regression suite runs separately to avoid recursive pytest execution. It invokes the real checks, briefly creates an unused-import probe under `backend/`, and removes it in `finally`. Run this suite serially in an otherwise idle checkout. Each test writes its report to pytest's temporary directory. No model calls or credentials are needed. The private GitHub remote is connected; [baseline hosted run #1 passed](https://github.com/Huzaifawaseem2006/careflow-ai/actions/runs/38693825109), and [isolated failure-proof run #2 failed as intended](https://github.com/Huzaifawaseem2006/careflow-ai/actions/runs/38694227925). Ticket 02 is resolved; its ticket records both commit SHAs and verification details. The failure-proof branch must not be merged into `master`.
 
