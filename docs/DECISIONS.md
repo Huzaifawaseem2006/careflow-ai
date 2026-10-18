@@ -321,3 +321,18 @@ against actual demo identities, never adopted as authenticated users. Live quali
 the later cumulative spending ledger, D01/D11 wording/reviewer and hosted exact-SHA
 CI remain separate gates. Temporary DPAPI helpers/credential are session-only and
 must be removed after verification; no permanent credential tooling is introduced.
+
+## Standalone local PostgreSQL test credential — 2026-10-18
+
+Owner requested persistent Windows DPAPI storage outside Git. Use a fixed
+`%USERPROFILE%\.careflow-ai\credential.clixml` with current-account-only ACLs and
+child-process-only environment delivery. A bounded PowerShell command delegates
+connection checking and test-output redaction to the existing Python runtime.
+Only the local `postgres` maintenance endpoint and existing disposable test suite
+are exposed. Server passwords, application configuration and the fixture remain
+unchanged. Validation checks connectivity; it does not certify extension/role
+privileges. Same-user processes/administrators remain trusted; managed memory and
+backups cannot be securely erased by this workflow. Full phase-gate launchers
+remain separate from this deliberately bounded integration runner.
+This separately approved tooling task supersedes the preceding session-only
+credential deletion rule for this saved credential; retain it between sessions.

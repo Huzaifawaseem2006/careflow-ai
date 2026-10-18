@@ -1223,3 +1223,109 @@ in ignored `test-results/p3-implementation-git-ci.json`, then report it to the o
 The ticket references that updatable local verification record; no second tracked
 post-push edit or automatic additional commit is planned. Live-provider quality,
 account compatibility and D01/D11 clinical wording/reviewer remain release gates.
+
+## 2026-10-18 — Standalone reusable PostgreSQL credentials (verified)
+
+Owner authorized this tooling task independently of Phase 3 Ticket 02. Initial
+repository check: clean `master`, exact HEAD
+`bacc0a25dc7bb2d911f556b67fe7743d7ce3ea10`. Inspected existing integration fixture,
+database safeguards, prior temporary DPAPI workflow records and relevant docs.
+No Phase 3 feature, application/authentication configuration, database credential
+change, model call, commit, staging or push is included.
+
+Added `scripts/postgres-tests.ps1` (setup/validate/test/rotate/delete), private
+Python subprocess helper and focused tooling tests. The real credential lives
+outside Git at `%USERPROFILE%\.careflow-ai\credential.clixml`, with DPAPI and
+current-account-only protected ACLs. Fixed target: postgres login on
+127.0.0.1:5432/postgres. The unchanged fixture creates/drops UUID disposable
+databases only. Child-only URL delivery, fixed pytest selectors, safe diagnostics,
+redacted stdout/stderr and before/after disposable-name checks are implemented.
+Credential discovery/commands/limitations are in AGENTS, README and
+`docs/POSTGRES_TESTING.md`; rationale is in DECISIONS. Local ticket:
+`.scratch/local-postgres-credentials/issues/01-reusable-windows-credential.md`.
+
+Verification actually executed:
+
+- Normal-host backend unit suite: **175 passed in 45.21s**, zero failures/skips,
+  `pytest backend/tests -q --tb=short -p no:cacheprovider --basetemp
+  test-results/credential-backend-host-01`.
+- Final focused tooling suite, after output piping/BSTR lifetime adjustments:
+  **22 passed in 5.33s**, zero failures/skips, same pytest options and
+  `--basetemp test-results/credential-tooling-final-04`. These overlap the broad
+  suite; do not add counts. Real Windows DPAPI/ACL/process checks pass on both
+  Windows PowerShell 5.1 and PowerShell 7 using synthetic credentials and a fake
+  validation server. Covers missing/corrupt credentials, one-prompt setup/reuse,
+  atomic rotation, failed rotation preservation, deletion, unsafe ACL/target/flag
+  rejection, parent environment isolation, redaction and cleanup failure handling.
+- Full repository Ruff format/check and strict mypy: passed (73 Python files).
+  `pip check`: passed. `git diff --check`: passed after removing an extra documentation EOF blank line.
+- Local postgres maintenance endpoint rejected a generated incorrect credential
+  with a nonzero result. No saved credential was read or database state changed.
+- Early failures exposed URL normalization, Windows ACL privilege handling,
+  PowerShell module-path inheritance and atomic Replace null binding; fixed and
+  covered by final passes. Restricted-temp WinError 5 required authorized normal
+  Windows execution; the restricted attempt is not passing evidence.
+- AI evals: not applicable (no AI/prompt changes). Hosted CI: not run, no approved
+  commit/push and no CI modification. Different-account DPAPI decryption was not
+  attempted; account isolation is supported by same-user roundtrips and inspected
+  SID-only ACLs, with administrative/same-user trust limitations documented.
+
+Owner completed interactive setup and replied `ready`. Subsequent verification:
+
+- Twice ran `powershell.exe -NoProfile -NonInteractive -File
+  .\scripts\postgres-tests.ps1 validate` in independent processes: both exit 0,
+  maintenance credential validated, no password prompt.
+- `powershell.exe -NoProfile -NonInteractive -File .\scripts\postgres-tests.ps1
+  test -TestPath backend/integration_tests/test_database_integration.py`:
+  **4 passed in 19.38s**, zero failures/errors/skips, exit 0.
+- Same runner with `-TestPath
+  backend/integration_tests/test_fixtures_integration.py`: **3 passed in 6.46s**,
+  zero failures/errors/skips, exit 0. Both test runs reported no new disposable
+  databases remaining. This is seven selected live tests, not the full integration
+  regression; no authentication/booking implementation changed.
+- Normal-host metadata-only inspection verified protected current-account-only
+  directory/file ACLs and no reparse points. Parent DATABASE_URL and
+  TEST_DATABASE_URL are unset. The saved real credential was not rotated/deleted;
+  it remains outside the repository for future sessions.
+- Final full repository Ruff format/check and strict mypy passed (73 files),
+  pip check passed, git diff --check passed. Self-review found no unresolved
+  security defects or unrelated feature changes. The maintenance target is fixed;
+  tests use the unchanged disposable harness. No test connection or mutation of
+  careflow_ai was performed. No real password or password-containing URL was
+  printed, written to repository/log files or placed in process arguments.
+
+All tooling acceptance criteria are verified; local ticket is resolved. Future
+sessions can automatically reuse the same-account/same-computer credential without
+prompting, subject to the documented access/server/rotation limitations. Rotation
+and deletion evidence is synthetic and does not claim server password rotation.
+No paid call, AI eval, full phase regression or hosted CI was performed. No staging,
+commit or push occurred. Ready for owner review of the nine changed/new files,
+including documentation, before any separately authorized Git action. No remaining
+tooling blocker; next step is owner Git review, not Phase 3 Ticket 02 work.
+
+## 2026-10-18 — PostgreSQL credential tooling final Git review
+
+Owner explicitly authorized one scoped commit, with message
+`chore: add reusable secure postgres test credentials`, and push to origin/master
+only after final review passes. This supersedes the preceding no-Git-approval
+statements for this one tooling commit/push; no other work is authorized.
+
+Final standards and spec reviews independently found zero actionable issues across
+all nine files. Git status contains only the approved tooling paths; HEAD and live
+origin/master remain the verified bacc0a25 baseline before commit. Synthetic
+Windows/tooling tests reran: **22 passed in 31.18s**, no failures/skips. Full Ruff
+format/check, strict mypy (73 files), pip check and diff whitespace checks passed.
+Saved credential validation and metadata-only external-path/ACL checks passed;
+no credential writes were performed. The existing disposable fixture, application
+database configuration, dependencies and CI workflow are unchanged. Secret review
+distinguishes explicit synthetic test values and the pre-existing README variable
+template from actual credentials; no credential artifacts or generated reports
+are tracked. AGENTS directly points future sessions to the reusable runner.
+
+Review these documentation changes and the complete explicit staged file set;
+verify cached whitespace/content/artifact exclusions before the authorized commit.
+Final commit/ref/clean-tree/hosted exact-SHA verification will be recorded in ignored
+`test-results/postgres-credential-git-ci.json` and reported to the owner, avoiding
+an unapproved second tracked post-push documentation commit. GitHub CLI is absent;
+use authenticated read-only GitHub API status via the existing Git credential
+helper, retaining credentials in process memory only and printing status fields.

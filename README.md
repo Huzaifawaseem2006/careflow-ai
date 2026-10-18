@@ -95,31 +95,39 @@ Set `DATABASE_URL` for the API using the same password-prompt pattern with `care
 
 ## Real database verification
 
-Use a local maintenance connection with CREATEDB and extension-install privileges. The suite creates fresh `careflow_test_<random UUID>` databases from `template0` and drops only those databases after each test; it never resets `careflow_ai` or the maintenance database. Use synthetic data only. Set the maintenance URL using the password prompt above, then run:
+Use the reusable [Windows credential workflow](docs/POSTGRES_TESTING.md). One-time
+setup saves an account-bound DPAPI credential outside Git at
+`%USERPROFILE%\.careflow-ai\credential.clixml`; subsequent sessions reuse it
+without prompting. Run from the checkout root:
 
 ```powershell
-$env:TEST_DATABASE_URL = $env:DATABASE_URL
-.venv\Scripts\python -m pytest backend/integration_tests -v -s -rs
+powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 setup
+powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 validate
+powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 test
 ```
 
-Set `TEST_DATABASE_URL` while `DATABASE_URL` still refers to the **administrator connection**, preferably to database `postgres`, before switching to the application role. The fixture uses its own disposable database connection for each test. No external host is accepted. Do not expose the URL in test reports or logs. Four database tests cover fresh/repeated migration, vector distance, readiness with missing schema/extension or stale revision, and independent liveness. Three fixture tests cover deterministic load/reset, preservation of unrelated rows, atomic rollback and refusal before migration. The successful migration test prints actual PostgreSQL/pgvector versions. The regular backend suite also checks unavailable/invalid configuration with safe error bodies. Without `TEST_DATABASE_URL`, all seven integration tests explicitly skip; skips do not satisfy database acceptance criteria. With a configured but unusable server, setup fails rather than skipping.
+Use `rotate` to save an updated password or `delete` to remove the saved copy.
+Only setup/rotation prompt, using `Read-Host -AsSecureString`. Leave the encrypted
+credential in place between sessions. The runner supplies a fixed local `postgres`
+maintenance URL only to child processes; no parent environment export is needed.
+The existing fixtures create/drop only `careflow_test_<random UUID>` databases;
+`careflow_ai` is never a test target. Use synthetic data only. Missing/invalid
+credentials fail safely; skipped tests do not satisfy database acceptance.
 
-Before pgvector installation, you can run the PostgreSQL-only check after configuring `TEST_DATABASE_URL`:
+Before pgvector installation, select the PostgreSQL-only check:
 
 ```powershell
-.venv\Scripts\python -m pytest backend/integration_tests/test_database_integration.py::test_unmigrated_database_is_not_ready_but_process_is_alive -v -s -rs
+powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 test -TestPath backend/integration_tests/test_database_integration.py::test_unmigrated_database_is_not_ready_but_process_is_alive
 ```
 
 It confirms SQL connectivity to a fresh database, no migration version table, `/ready` HTTP 503 and `/health` HTTP 200. It does not enable or require pgvector. The complete four-test suite must still pass after extension installation. Credentials must be configured locally; a pgAdmin connection does not configure the API/test process, and no password should be pasted into chat.
 
 Run `.venv\Scripts\python scripts/check_foundation.py` and `.venv\Scripts\python -m pytest ci_tests -q` serially for local foundation verification. Hosted CI currently runs those checks and the offline/unit suite only; it does not claim live database coverage. Ticket 03 closeout passed 15 local tests (9 offline/unit, 4 real PostgreSQL, 2 CI regressions), with no skips. Fresh/repeat migration, vector distance, successful/unmigrated/missing-extension/stale-revision readiness and database-independent liveness are verified. Evidence and remaining phase work are recorded in progress.
 
-If the restricted Windows execution environment blocks pytest temporary directories with WinError 5, run from an ordinary local PowerShell session. Use a fresh ignored workspace directory for test temporaries and keep the CI regression suite serial. For example, after setting the environment URLs:
-
-```powershell
-$taskTestTemp = Join-Path (Get-Location).Path ('test-results\pytest-' + [guid]::NewGuid().ToString('N'))
-.venv\Scripts\python -m pytest backend/tests backend/integration_tests ci_tests -q -rs --basetemp $taskTestTemp
-```
+If the restricted Windows execution environment blocks pytest temporary directories
+with WinError 5, run the credential runner from an ordinary local PowerShell
+session. It creates a fresh ignored test-temporary directory on every run. Keep
+the separate CI regression suite serial in an otherwise idle checkout.
 
 ## Synthetic clinic fixtures (Ticket 04)
 
@@ -204,19 +212,17 @@ Dataset edits require review, a new manifest dataset version and SHA-256; preser
 From a fresh checkout, install the pinned Python and `.[dev]` dependencies as above. Configure native PostgreSQL/pgvector and use a local maintenance role with CREATEDB, CREATEROLE and extension-install privileges. Run from the repository root in an otherwise idle checkout:
 
 ```powershell
-$ticket07Password = [uri]::EscapeDataString((Get-Credential -UserName postgres -Message 'Disposable database verification only').GetNetworkCredential().Password)
-$env:TEST_DATABASE_URL = "postgresql+psycopg://postgres:${ticket07Password}@127.0.0.1:5432/postgres"
-Remove-Variable ticket07Password
-try {
-    .venv\Scripts\python scripts/check_phase1.py
-    $ticket07Exit = $LASTEXITCODE
-} finally {
-    Remove-Item Env:TEST_DATABASE_URL -ErrorAction SilentlyContinue
-}
-Write-Host "Phase 1 gate exit: $ticket07Exit"
+.venv\Scripts\python scripts/check_phase1.py
 ```
 
-The password prompt keeps credentials out of shell history and Git. Tests create/drop disposable databases and a unique temporary role; they do not migrate/reset `careflow_ai`. Do not send passwords through chat. For an offline-only attempt, omit credential setup and run the same Python command; missing PostgreSQL evidence blocks the gate.
+This historical full gate needs a securely supplied child-process maintenance
+`TEST_DATABASE_URL` to pass; without one it records missing PostgreSQL evidence
+and blocks. The bounded credential runner above runs PostgreSQL integration tests
+only and deliberately does not export a URL to the calling shell or launch this
+gate. For routine database verification use the runner; a future full gate run
+needs a separately reviewed child-process launcher. The former `Get-Credential`
+and parent-environment password recipe has been retired. Do not send passwords
+through chat.
 
 The gate serially reuses foundation format/lint/types/unit/HTTP/eval-infrastructure tests, all PostgreSQL migration/fixture/session-security tests, CI subprocess regressions, and the full seven-case offline inventory. `test-results/phase1.json` records revision/dirty state, UTC timestamp, exact command argument arrays, exit codes, test counts, offline metadata/statuses and unresolved risks. Each invocation writes companion evidence into a new unique directory beside the report, avoiding stale evidence reuse. `--report <path>` selects another destination. Foundation reports now also record command arrays and companion unit-test JUnit XML.
 
