@@ -1,9 +1,14 @@
 # Phase 3 — AI tool calling
 
-Status: planning and six-ticket publication only, 2026-10-18. Owner approved the
-six-ticket structure and selected Anthropic Claude Messages API. Subsequently
-authorized one planning-only commit and normal push to origin/master after final
-review. Ticket implementation, paid runs and additional commits remain unapproved.
+Status: owner approved Ticket 01 implementation and its four TDD seams on
+2026-10-18. Catalog/fee chat and the first real-path mocked baseline are implemented
+and verified locally: 316 broad regression passes, 67 final focused passes and 13
+mocked behavioral passes (2 later-ticket cases pending; counts overlap).
+Ticket 01 is resolved; evidence is tracked in the ticket and progress log.
+Owner subsequently approved one implementation commit and normal push, subject to
+final staged review; hosted verification is recorded via the Ticket 01 handoff.
+The remaining five tickets, paid runs and additional commits/pushes are not
+authorized. The six-ticket dependency structure is unchanged.
 Shared requirements: [Phase 3 spec](../.scratch/phase-3-ai-tools/spec.md).
 
 ## Entry and sequence

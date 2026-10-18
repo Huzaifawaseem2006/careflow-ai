@@ -141,6 +141,13 @@ Admin is not a global bypass. Staff actions reuse the same confirmation and doma
 
 ## AI and RAG
 
+Phase 3 Ticket 01 implements the catalog portion in `chat.py`, `chat_tools.py`
+and `chat_api.py`, with neutral contracts/provider interfaces and an isolated
+`anthropic_provider.py`. The same orchestration/catalog path powers mocked
+behavioral evaluations. All output prose is rendered deterministically from
+validated facts; provider text has no authority. No chat persistence or appointment
+tool is added. See [implemented contracts, runtime and privacy boundaries](CHAT.md).
+
 Authenticate/resolve conversation -> enforce limits -> safety routing -> expose only permitted tool schemas -> explicit bounded model/tool loop -> validate tool inputs and outputs -> structured response with text, citations and typed action summaries. Model/provider failure cannot count as confirmed success. Model and tool-call budgets, timeout and bounded retry rules are configured and tested. Never retry a mutation with a new key after an ambiguous timeout.
 
 Use versioned strict custom tool schemas with `additionalProperties: false` and the provider-supported schema subset; validate both arguments and results in backend code. Shape does not establish authorization or business validity. Anthropic Messages initially uses configurable `claude-sonnet-5-5`, auto tool choice and disabled parallel tool use. Reject unexpected multiple calls before execution; do not force named/any tools unsupported by the selected model. Only the provider adapter handles tool_use/tool_result blocks, stop reasons and necessary private continuation. See the [Phase 3 plan](../plans/phase-3-ai-tools.md) for dated official capability/retention sources, model trade-offs and SDK verification criteria. Pydantic strict validation has input-mode differences; test JSON and Python boundaries. [Strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).

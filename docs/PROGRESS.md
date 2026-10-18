@@ -1064,3 +1064,162 @@ and exact-SHA Actions evidence in ignored nonsecret test-results reports and the
 handoff, without another tracked post-commit edit. Application tests, DB tests and
 AI evals are not required for this documentation-only commit and were not run.
 Next implementation remains separately approved Ticket 01 in a fresh session.
+
+## 2026-10-18 — Phase 3 Ticket 01 implementation and verification
+
+Owner approved only Ticket 01, then explicitly confirmed HTTP /chat, neutral
+orchestrator/provider, mocked Anthropic transport and real catalog/PostgreSQL
+TDD seams. Initial master was clean at the required planning baseline
+fa7987e96938392aff9fa99cd9c3b2560c1c3236. Read AGENTS, implement/TDD skills,
+ticket/spec/phase plan, latest relevant progress/decisions, scoped architecture,
+API/safety/evaluation docs and existing catalog/services/tests. No commits/pushes
+or paid calls are authorized or performed.
+
+Implemented bounded public same-origin single-turn POST /chat. Versioned strict
+contracts reject incoming roles/transcripts/authority, and static schemas expose
+only five catalog/fee reads. Typed adapters use existing active fixed-clinic
+catalog services off the event loop. Exact decimal fees and server-assembled facts
+drive deterministic wording; all model prose is discarded. Empty/ambiguous
+matches clarify; missing policy evidence abstains. No availability, appointment
+tools, persistence, RAG, frontend or staff queue is added. Body/context/output,
+call/time budgets and persisted peer rate limits fail safely. Provider waits
+hold no DB transaction. Auth/booking/management contracts remain unchanged.
+
+Pinned Anthropic 1.15.0/httpx2 2.13.1 under Python 3.13.13. Adapter owns Messages,
+IDs, ordered continuation/thinking and transport errors, requests auto choice
+with parallel tools disabled and zero retries, and transforms unsupported strict
+schema constraints into descriptions while independently enforcing originals.
+Default-off CHAT_ENABLED plus environment ANTHROPIC_API_KEY prevents key possession
+from enabling paid access. No key inspection/provisioning or .env autoload.
+Fixed HTTPS provider transport disables inherited proxies/redirects; SDK telemetry
+and body logger are disabled. See docs/CHAT.md and dated decision rationale.
+
+TDD evidence: request-spoofing tests initially failed 404 then passed 422; model
+free-text grounding, illegal calls, runtime limits, body bounds, disabled-provider
+config and real fee results were implemented in vertical red/green slices.
+Actual SDK transport exposed continuation serialization and unsupported schema
+constraints, both repaired and tested. Independent graders reject wrong-tool,
+fabricated-fee, forbidden-output and changed-state mutations, with positive
+controls. A deliberate wrong oracle makes the real evaluation CLI exit 1.
+
+Final focused command (normal Windows host permissions):
+`powershell -NoProfile -File test-results/phase3-ticket01-run.ps1 -m pytest
+backend/tests/test_chat.py backend/tests/test_anthropic_provider.py
+backend/integration_tests/test_chat_integration.py evals/tests/test_catalog_behavior.py
+-q -p no:cacheprovider --basetemp test-results/p3-final-chat-01
+--junitxml test-results/p3-final-chat.xml`: **67 passed**, no failures/errors/skips.
+This includes read-only application grants/patient denial, inactive/foreign clinic
+records, exact fees, HTTP origin/rate/secrets, corrected invalid calls, incomplete
+provider/loop outputs, no open transaction at waits and response limits.
+
+`python -m evals.run_catalog --partition all --report test-results/p3-catalog-all.json`
+through the temporary runner: **13 executed/passed, 2 pending future cases, zero
+failed/blocked/skipped**. Dev run: **12 passed, 1 pending**. Baseline ID
+phase3-ticket01-mocked-v1, dataset phase3-catalog-v1, SHA-256
+5e9ed87ee3216a1a069f4749496eb367241e2d24048bb3ace9685fa981a628d6.
+Original seven-case phase1-v1 inventory and null quality remain history. The same
+orchestrator and actual catalog services run against freshly migrated disposable
+PostgreSQL; only provider replies are scripted. Personas resolve to real synthetic
+fixtures with effective guest access; full DB hashes verify no business mutation.
+Safe reports contain versions, dirty/code hash, correlation/tool outcomes and
+latency, with null model tool-selection/tokens/cost and explicit release gates.
+
+Checks passed: ruff format/check, strict mypy across 71 Python files, pip check,
+git diff --check. Bandit 1.9.4 reports zero medium/high findings; its 12 low flags
+were reviewed (constant git commands/no shell, type assertions, null usage fields,
+intentional empty SDK auth-token override). pip-audit 2.10.1 initially found eight
+advisory records concerning pre-existing pip 26.0.1; updated only ignored local
+venv tooling to pip 26.2.1 and reran: 75 third-party packages, zero vulnerabilities.
+Editable careflow-ai is unavailable on PyPI and covered by source checks/review.
+Sandbox network blocked initial audit-tool install/advisory fetch; normal host
+execution completed both. No application dependency upgrade beyond the new pins.
+
+Required parallel code review: Standards zero actionable findings. Spec found
+one P1 after-header HTTP body-stream failure escaping safe normalization; three
+tests reproduced it, adapter now catches HTTPError with suppressed exception
+chaining, all 27 provider tests pass, and reviewer confirmed closure. No unresolved
+review findings. An expanded restricted Windows run hit pytest temp WinError 5;
+it is not counted as passing. A fresh normal-host focused run passed 40 tests
+before final additions; the final 67-test run supersedes that scope. Early failing
+tests/type/lint checks are red/fix evidence, not final pass claims.
+
+Database credential workflow was explicitly approved by owner: ignored temporary
+PowerShell setup/runner, secure Read-Host and DPAPI Export-Clixml; owner confirmed
+setup before use. No password printed or committed. Tests guard local postgres
+maintenance access and create/drop only careflow_test_<32 hex>; no automated test
+targets careflow_ai. Final maintenance-catalog audit passed with zero leftover
+careflow_test_* databases or temporary test roles, without connecting to careflow_ai
+(test-results/p3-database-safety.json). Removed the DPAPI credential and exact
+temporary setup, runner, audit and dataset-generator helpers after verification.
+
+Changed-file groups: six careflow chat/provider/tool modules; router/body-limit
+wiring; SDK/transport pins and placeholder config; chat HTTP/orchestration/SDK and
+PostgreSQL tests; versioned catalog eval dataset/oracles/runner/grader controls;
+historical inventory wording; docs/CHAT.md, API/architecture/eval/decision/progress
+docs, README, phase plan and Ticket 01. No migration or Phase 2 service changes.
+Remaining release gates: D01/D11 exact clinical wording/named reviewer, live
+account/model/evaluation/spending evidence in Ticket 06, hosted exact-SHA Actions
+after separate commit/push authorization. Next task after review is Ticket 02 in
+a fresh session with separate approval; do not begin it here.
+
+Final broad command: temporary runner `-m pytest backend/tests
+backend/integration_tests evals/tests ci_tests -q -rs -p no:cacheprovider
+--basetemp test-results/p3-full-host-01 --junitxml test-results/p3-full.xml`:
+**316 passed in 1139.68s**, zero failures/errors/skips. Breakdown: 149 backend
+unit, 129 real PostgreSQL integration, 23 eval and 15 serial CI command tests.
+The broad run began before the four last focused tests were added; all final
+changed seams were then verified on current code by **67 passed in 78.61s**
+(24 chat, 27 provider, 10 PostgreSQL, 6 grader), no failures/errors/skips, fresh
+basetemp p3-final-chat-02 and the same final JUnit path. The runs cover **320
+distinct test cases**, with 63 overlapping cases; their counts must not be added.
+One final red/green case caught partial facts surviving a later uncorrected
+malformed call; final rendering now abstains in that state. Affected all-case
+mocked evaluation reran 13 passed/2 pending, unchanged from the preceding run;
+zero regressions and final source-hash match were verified. The original report
+is retained at test-results/p3-catalog-all-before-final-guard.json for comparison.
+
+Final ruff format/check, strict mypy (71 Python files), pip check, medium/high
+Bandit scan and git diff --check pass. Review manifest records 28 files, no broken
+local Markdown links, valid dataset checksum and no secret/temporary artifacts.
+Existing Git LF-to-CRLF normalization notices are not failures. Ticket 01's nine
+acceptance criteria are verified and marked complete; its local status is resolved.
+Both review axes have zero unresolved findings. Ready for Git review only: no
+staging, commit, push, hosted CI, paid call or Ticket 02 implementation occurred.
+
+## 2026-10-18 — Ticket 01 implementation Git approval and staged review
+
+Owner approved exactly one implementation commit
+`feat: implement grounded catalog chat and anthropic tools` and normal push to
+origin/master, conditional on final review of the 28 changed files and staged diff.
+This supersedes earlier no-Git-approval statements for this one implementation
+commit/push only. No later ticket, paid call or additional commit is authorized.
+
+Preflight evidence rechecked against retained JUnit/JSON: 9/9 local acceptance;
+316 broad and 67 focused passes, 320 distinct cases with 63 overlap; zero failures,
+errors or skips; 13 passing mocked cases and 2 future cases pending; no paid call;
+disposable PostgreSQL resources and temporary credentials/helpers cleaned up.
+The retained mocked report's source hash matches the implementation being reviewed.
+No business code changed during this Git milestone. Final documentation adds the
+explicit distinct-case count, this one-time approval and the hosted-status pointer.
+
+Review the known implementation paths, stage explicitly, inspect every change and
+check normalized working/index content, dataset hash, secret/artifact exclusions
+and git diff --cached --check before committing. Current live origin/master was
+verified at fa7987e96938392aff9fa99cd9c3b2560c1c3236. The sandbox blocked the initial
+network read; normal host read succeeded without a remote change.
+
+Final staged review caught one portability defect: existing core.autocrlf=true
+would change the new catalog_v1 dataset's bytes on a fresh Windows checkout.
+Added its explicit LF rule beside the original dataset rule in .gitattributes.
+Final commit scope is 29 files (28 reviewed implementation/doc files plus this
+one-line rule). This preserves the versioned checksum contract, with no business
+code or later-phase expansion. Verify the staged bytes and an autocrlf=true
+checkout export against the unchanged manifest. The retained test counts remain
+316 broad/67 focused/320 distinct, and the mocked source hash remains unchanged.
+
+Hosted exact-SHA status is pending at commit preparation. Record the final commit,
+matching local/origin/live SHAs, clean-tree check and actual Actions run/job result
+in ignored `test-results/p3-implementation-git-ci.json`, then report it to the owner.
+The ticket references that updatable local verification record; no second tracked
+post-push edit or automatic additional commit is planned. Live-provider quality,
+account compatibility and D01/D11 clinical wording/reviewer remain release gates.

@@ -23,7 +23,9 @@ def build_report(directory: Path, partition: str) -> dict[str, object]:
             group=c.group,
             severity=c.severity,
             status="pending",
-            reason="Chat orchestrator/service adapter and graders not implemented",
+            reason=(
+                "Historical inventory only; behavioral execution uses evals.run_catalog"
+            ),
         )
         for c in selected
     ]

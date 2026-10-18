@@ -284,3 +284,40 @@ adapter/protocol/retention/secret tests and live cost evidence, not those edges.
 No separate prefactor is needed because domain service seams already exist.
 Each implementation ticket, paid run, commit and push retains its own approval
 boundary. No Phase 3 implementation is authorized by ticket publication.
+
+## Phase 3 Ticket 01 implementation — 2026-10-18
+
+Owner separately approved Ticket 01 and four TDD seams: POST /chat, neutral
+orchestrator/provider, mocked Anthropic transport and real catalog services on
+disposable PostgreSQL. No appointment tools, persistent chat, paid call, commit
+or push is included. Public chat has no actor authority: existing fixed-clinic
+catalog services remain authoritative. Reuse persisted auth_limits for peer
+traffic control; no schema change or new identity lifecycle is needed.
+
+Use deterministic server text from strict typed catalog facts. Discard model
+prose entirely, including free-text fabrications and apparent success claims.
+This intentionally limits conversational richness while giving executable
+grounding rather than relying on prompt compliance or a second model grader.
+Name search is bounded to a selected catalog page and discloses that limitation.
+
+Pin Anthropic 1.15.0 and its directly used httpx2 transport 2.13.1. Official strict
+tools share the structured-output schema subset: numeric/length constraints are
+not API-supported. The adapter uses SDK transform_schema for the provider-facing
+schema, preserving full strict backend validation. Use auto/sequential calls,
+zero retries, fixed official transport host, disabled proxy/redirect inheritance,
+disabled SDK telemetry/body logger and a separate default-off CHAT_ENABLED switch.
+No live account compatibility, model quality, price usage or ZDR claim follows.
+
+Each request has a private adapter continuation and finite loop/time/size budgets.
+Single malformed argument sets may receive an error result and bounded correction;
+illegal/multiple calls, protocol/service failures and exhausted budgets stop with
+no partial facts or success. Read-only SQL may finish after cancellation under
+existing statement limits; no transaction crosses a provider call.
+
+Preserve Phase 1 null inventory; add phase3-catalog-v1 and real-path scripted
+behavioral graders with independent fixture oracles and full DB state hashes.
+Future booking/ownership cases remain pending. Public persona fixtures are checked
+against actual demo identities, never adopted as authenticated users. Live quality,
+the later cumulative spending ledger, D01/D11 wording/reviewer and hosted exact-SHA
+CI remain separate gates. Temporary DPAPI helpers/credential are session-only and
+must be removed after verification; no permanent credential tooling is introduced.

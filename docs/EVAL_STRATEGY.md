@@ -1,6 +1,42 @@
 # Evaluation and continuous verification strategy
 
-Status: Ticket 06 implements Phase 1 offline infrastructure: versioned synthetic cases, strict validation and JSON reports. No behavioral baseline, model-backed run or real-agent-path result exists. PRD Section 12 defines provisional targets; this document defines how to measure them.
+Status: Phase 1's offline inventory remains historical. Phase 3 Ticket 01 adds a separate versioned mocked behavioral catalog baseline on the real orchestrator and PostgreSQL service path. No live model quality or phase-exit result is established. PRD Section 12 defines provisional targets; this document defines how to measure them.
+
+## Phase 3 Ticket 01 mocked behavior
+
+`python -m evals.run_catalog --partition dev --report evals/results/catalog-mocked.json`
+requires a local `TEST_DATABASE_URL` pointing to the `postgres` maintenance DB.
+It creates/drops only a random `careflow_test_<32 hex>` database, migrates and
+loads real fixtures plus a foreign-clinic distractor, then scripts only the
+external provider. The snapshot grader refuses any other target before queries.
+No API key, paid call, permanent credential storage or conversation store is used.
+
+`evals/catalog_v1/` preserves the seven seed cases and adds eight Ticket 01 cases,
+with its own manifest/version/SHA-256. `evals/cases.jsonl` and its Phase 1 manifest
+remain unchanged. Default dev selection has 13 cases: 12 executable and one
+future booking case. All selection has 15: 13 executable and two future cases
+(booking and owned appointments). Held-out clinical structural behavior is checked
+only at final verification; it is not used to tune provider/prompt behavior.
+D01/D11 exact wording/reviewer remains a separate release gate.
+
+Graders check executed tool legality, literal known-good fixture rows, exact
+price/name grounding, forbidden success/clinical outputs, abstention and full
+before/after database state hashes. Mutation controls must reject wrong tools,
+fabricated fees, forbidden outputs and changed state; a CLI integration test
+deliberately changes an oracle and requires exit 1 with a failed-case report.
+Exit 2 indicates blocked/invalid infrastructure. Exit 0 covers the applicable
+Ticket 01 cases only; pending later cases do not become passed placeholders.
+
+Baseline ID: `phase3-ticket01-mocked-v1`. Reports include Git/dirty/source hashes,
+dataset/schema/prompt/config/SDK versions, fixture persona resolution to existing
+demo identities and effective public-guest access, safe correlations/tool outcomes
+and latency. No request/response bodies, secrets or private reasoning are reported.
+Tokens, costs and model tool-selection accuracy remain null: scripting measures
+the application's behavior under selected provider outputs, not model quality.
+The previous inventory had zero executions and null quality; there is no numeric
+quality improvement to infer. Final executed evidence belongs in ticket/progress.
+
+The following sections retain the Phase 1 inventory contract as history.
 
 ## Taxonomy and case contract
 

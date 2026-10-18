@@ -25,7 +25,7 @@ COOKIE = "__Host-careflow_session"
 
 
 class AuthBodyLimit:
-    """Bound auth/appointment bodies before JSON parsing, including chunked bodies."""
+    """Bound auth/appointment/chat bodies before JSON parsing, including chunks."""
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -36,6 +36,7 @@ class AuthBodyLimit:
             or scope["method"] != "POST"
             or not (
                 scope["path"].startswith("/auth/")
+                or scope["path"] == "/chat"
                 or scope["path"] == "/appointments"
                 or scope["path"].startswith("/appointments/")
             )

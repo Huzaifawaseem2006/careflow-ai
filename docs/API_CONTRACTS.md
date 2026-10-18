@@ -1,6 +1,6 @@
 # Proposed API and tool contracts
 
-Status: health/readiness, the Ticket 05 patient-session routes and the Phase 2 public catalog/availability and Ticket 03 booking/Ticket 04 management routes below are implemented. Other domain endpoints and all AI tools remain planned. URL names from PRD are retained where possible; exact schemas, status codes and provider-specific schema support will be checked in their implementation slices. No client or model assertion substitutes for server authorization.
+Status: health/readiness, patient sessions and Phase 2 catalog/availability/booking/management are implemented. Phase 3 Ticket 01 adds public single-turn POST /chat and five read-only catalog/fee tools; see [exact chat contracts and limits](CHAT.md). Other chat, appointment-tool and retrieval workflows remain planned. No client or model assertion substitutes for server authorization.
 
 ## Common rules
 
@@ -30,7 +30,7 @@ Approved explicit confirmation flow: `POST /appointments/proposals` or correspon
 | `POST /appointments/{id}/cancel` | Patient | Implemented: separate bound proof confirmation, atomic cancellation/history/retry; 200 result. |
 | `POST /appointments/{id}/reschedule/proposals` | Patient | Implemented: owned active appointment, current persisted target/fee review, no capacity hold. |
 | `POST /appointments/{id}/reschedule` | Patient | Implemented: separate bound proof confirmation, atomic same-appointment move/history/retry; 200 result. |
-| `POST /chat` | Guest or authenticated | Bounded input, scoped conversation access; structured citations/actions |
+| `POST /chat` | Public, same origin | Ticket 01: single turn, grounded catalog/fees; empty actions/citations; no private history |
 | `POST /handoffs` | Authenticated patient | Persist owned queue request with consent; return actual ID/status |
 | Staff routes, precise paths TBD | Scoped staff/admin | Clinic assignment and explicit permissions for schedule, documents, escalations and redacted audit |
 

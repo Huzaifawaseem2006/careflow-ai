@@ -439,3 +439,24 @@ behavioral evals remain documented limitations. The owner separately approved
 the documentation-only closeout commit/push on 2026-10-18. Phase 3 has not begun
 and requires a new explicit approval.
 See docs/PROGRESS.md for commands and evidence.
+
+## Public grounded chat (Phase 3 Ticket 01)
+
+`POST /chat` now supports single-turn public doctor/specialty/service and exact
+PKR fee lookup through five bounded read-only tools. See [chat contracts and
+runtime configuration](docs/CHAT.md). Chat is disabled by default; setting an
+API key alone does not enable it or authorize spending. Never submit real patient
+data. No conversation persistence, appointment chat, retrieval or frontend is added.
+
+Mocked behavior uses the same orchestrator and real catalog services, with a
+disposable PostgreSQL database and no Anthropic calls:
+
+```powershell
+.venv\Scripts\python -m evals.run_catalog --partition dev --report evals/results/catalog-mocked.json
+.venv\Scripts\python -m pytest backend/tests backend/integration_tests evals/tests ci_tests -q -rs
+```
+
+Configure TEST_DATABASE_URL securely for the local postgres maintenance database;
+the eval command and integration fixture create/drop only careflow_test_* targets.
+See [evaluation semantics](docs/EVAL_STRATEGY.md) for executed versus pending cases,
+baseline versions, nonzero failure gates and unmeasured live model quality.
