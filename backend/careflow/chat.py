@@ -35,6 +35,12 @@ from careflow.chat_contracts import (
     ToolResult,
 )
 from careflow.chat_provider import Provider, ProviderError
+from careflow.chat_reschedule import (
+    RESCHEDULE_TOOL,
+    RescheduleArguments,
+    execute_reschedule,
+    render_reschedule_review,
+)
 from careflow.chat_tools import (
     APPOINTMENT_TOOL,
     TOOLS,
@@ -47,7 +53,8 @@ from careflow.chat_tools import (
 DISCLOSURE = "Synthetic demo: fictional clinic data only. "
 ABSTENTION = (
     "I can help with catalog and fee lookup, and owned appointment lookup in "
-    "signed-in conversations, persisted availability, booking and cancellation "
+    "signed-in conversations, persisted availability, booking, cancellation "
+    "and rescheduling "
     "reviews. "
     "Please specify an unambiguous doctor/date/time or select a real slot. "
     "Chat cannot confirm appointments. I have no verified policy evidence and cannot "
@@ -74,7 +81,13 @@ async def run_chat(
     facts: list[ToolResult] = []
     public_tools = (*TOOLS, AVAILABILITY_TOOL)
     tools = (
-        (*public_tools, APPOINTMENT_TOOL, BOOKING_TOOL, CANCELLATION_TOOL)
+        (
+            *public_tools,
+            APPOINTMENT_TOOL,
+            BOOKING_TOOL,
+            CANCELLATION_TOOL,
+            RESCHEDULE_TOOL,
+        )
         if private_token is not None
         else public_tools
     )
@@ -142,6 +155,7 @@ async def run_chat(
                         "get_my_appointments",
                         "propose_booking",
                         "propose_cancellation",
+                        "propose_reschedule",
                         "get_available_slots",
                     }:
                         import json
@@ -149,6 +163,7 @@ async def run_chat(
                         models: dict[str, type[Contract]] = {
                             "propose_booking": BookingArguments,
                             "propose_cancellation": CancellationArguments,
+                            "propose_reschedule": RescheduleArguments,
                             "get_available_slots": AvailabilityArguments,
                             "get_my_appointments": AppointmentArguments,
                         }
@@ -163,10 +178,15 @@ async def run_chat(
                         "get_available_slots",
                         "propose_booking",
                         "propose_cancellation",
+                        "propose_reschedule",
                     }:
                         response.status = "clarification"
                         response.text = DISCLOSURE + (
                             "Please select one unambiguous owned appointment "
+                            "and a real "
+                            "available target slot. No move or hold occurred."
+                            if call.name == "propose_reschedule"
+                            else "Please select one unambiguous owned appointment "
                             "for cancellation review. "
                             "No cancellation or capacity release occurred."
                             if call.name == "propose_cancellation"
@@ -179,12 +199,20 @@ async def run_chat(
                         )
                         break
                 else:
-                    if call.name in {"propose_booking", "propose_cancellation"}:
+                    if call.name in {
+                        "propose_booking",
+                        "propose_cancellation",
+                        "propose_reschedule",
+                    }:
                         review = (
                             await run_in_threadpool(
                                 execute_booking, call, private_token, private_csrf
                             )
                             if call.name == "propose_booking"
+                            else await run_in_threadpool(
+                                execute_reschedule, call, private_token, private_csrf
+                            )
+                            if call.name == "propose_reschedule"
                             else await run_in_threadpool(
                                 execute_cancellation, call, private_token, private_csrf
                             )
@@ -195,6 +223,8 @@ async def run_chat(
                         response.text = (
                             render_review(review)
                             if review.kind == "booking_review"
+                            else render_reschedule_review(review)
+                            if review.kind == "reschedule_review"
                             else render_cancellation_review(review)
                         )
                         response.status = "answered"

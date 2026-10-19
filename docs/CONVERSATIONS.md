@@ -49,10 +49,12 @@ History returns the newest complete turns in ascending completion sequence, at
 most 20 and within 32 KiB; `truncated` discloses omitted older turns. Each contains
 `id`, `user_text`, and the server response snapshot. History and replay are records
 of past responses, not current appointment state. The nested response retains the
-version-1 authoritative envelope; citations remain empty. Tickets 03/04 live booking
-and cancellation reviews carry protected actions; stored history/replay carries
-only a proof-free historical marker with empty actions. Prompt: `cancellation-v1`;
-tool schema: `4` (historical `context-v1`/`2` and `booking-v1`/`3` remain valid),
+version-1 authoritative envelope; citations remain empty. Tickets 03-05 live booking,
+cancellation and rescheduling reviews carry protected actions; stored history/replay
+carries
+only a proof-free historical marker with empty actions. Prompt: `reschedule-v1`;
+tool schema: `5` (historical `context-v1`/`2`, `booking-v1`/`3` and
+`cancellation-v1`/`4` remain valid),
 including public-path reports.
 
 Turn UUIDs are scoped to a conversation. Exact completed retries revalidate live

@@ -145,7 +145,7 @@ Strictly allowlisted, versioned tool schemas with validated inputs and outputs. 
 | `confirm_booking` | Call confirmation service | Only with server-verified UI confirmation capability |
 | `propose_cancellation` | Create bound proposal | Ownership/policy checked |
 | `confirm_cancellation` | Call confirmation service | Same confirmation rule |
-| `propose_reschedule` / `confirm_reschedule` | Proposed additions, D12 | Needed for J4, not in PRD allowlist |
+| `propose_reschedule` | Management proposal, D12 | Owned source and real target; separate HTTP confirmation only |
 | `request_handoff` | Queue service | Authenticated patient and consent required |
 
 Do not make confirm tools generally callable from ordinary model output. A confirmed user event is the authority to execute; the orchestrator can describe the resulting operation but cannot manufacture confirmation. No SQL, shell, browser or direct provider-backed data tool is exposed to the model. Tool outputs contain only permitted fields and safe errors.
@@ -277,4 +277,16 @@ History and completed-turn replay return only a proof-free marker and empty
 actions. No model-callable confirmation exists. Separate explicit confirmation
 uses the unchanged `POST /appointments/{identifier}/cancel` contract above.
 See [review, error and reconciliation contracts](BOOKING_CHAT.md). Current
-prompt/schema versions are `cancellation-v1`/`4`; earlier snapshots remain valid.
+prompt/schema versions are `reschedule-v1`/`5`; earlier snapshots remain valid.
+
+## Phase 3 Ticket 05 rescheduling chat action
+
+Authenticated turns expose `propose_reschedule` with exactly `appointment_id` and
+`slot_id` UUIDs. Only the original protected response carries a `reschedule_review`
+action: issued `proposal_token`, `expires_at`, and exact management summary
+(`operation: "reschedule"`, full booked source `appointment`, versioned `target`
+with current fee even unchanged). History/completed-turn replay strips the proof
+and returns empty actions. Explicit confirmation uses the unchanged authenticated
+HTTPS/origin/CSRF `POST /appointments/{identifier}/reschedule` with original proof
+and idempotency key. No ordinary model output can confirm. See
+[exact action, atomicity, error and replay contracts](BOOKING_CHAT.md).

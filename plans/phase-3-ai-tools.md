@@ -25,7 +25,11 @@ Owner then authorized one Ticket 03 implementation commit/push after final scope
 review; exact-SHA Actions/ref results will be retained in the Git handoff record.
 Owner approved Ticket 04 implementation and its four TDD seams plus mocked evals
 on 2026-10-19, starting from clean master `86593c6`. Ticket 04 verification/handoff
-is recorded in `docs/PROGRESS.md`. Tickets 05–06, paid runs and further
+is recorded in `docs/PROGRESS.md`. Owner subsequently approved Ticket 05 and
+its four TDD seams on 2026-10-19. Ticket 05 is implemented and locally verified:
+247 PostgreSQL passes,
+270 offline/backend/eval/CI passes and 10 new mocked eval passes; prior baselines
+are unchanged. Handoff is in PROGRESS. Ticket 06, paid runs and further
 commits/pushes remain unauthorized.
 The six-ticket dependency structure is unchanged. See the approved
 [D10 mechanics](../.scratch/phase-3-ai-tools/d10-mechanics-review.md) and
@@ -167,7 +171,8 @@ Existing service seams need no standalone prefactoring ticket. Update actual
 ticket/progress/contracts and material decisions at each completion, recording
 executed results and blockers. Current: Ticket 04 is implemented and locally
 verified (206 PostgreSQL / 253 offline tests; 8 new scripted eval passes);
-Ticket 05 requires a separately approved fresh session after Ticket 04 handoff.
+Ticket 05 is resolved after local verification; see PROGRESS. Ticket 06 needs
+separate implementation approval in a fresh session.
 
 ## Official sources checked 2026-10-18
 

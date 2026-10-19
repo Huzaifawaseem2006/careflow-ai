@@ -1,9 +1,11 @@
-# Appointment reviews — Phase 3 Tickets 03–04
+# Appointment reviews — Phase 3 Tickets 03-05
 
 Synthetic clinic operations only. Owner approved Ticket 03, four TDD seams and
 protected-action/history mechanics on 2026-10-18. Owner approved Ticket 04 and its
-four TDD seams/evals on 2026-10-19. Current prompt: `cancellation-v1`; tool schema:
-`4`. Historical `context-v1`/`2` and `booking-v1`/`3` responses remain replayable.
+four TDD seams/evals on 2026-10-19. Owner approved Ticket 05 and its four TDD
+seams on 2026-10-19. Current prompt: `reschedule-v1`; tool schema: `5`.
+Historical `context-v1`/`2`, `booking-v1`/`3` and `cancellation-v1`/`4`
+responses remain replayable.
 No frontend or confirmation tool exists.
 
 ## Tools and authority
@@ -86,10 +88,9 @@ undo the booking or authorize another one.
 
 Use authorized `GET /appointments` for current state or exact confirmation replay
 for the original operation result. A replay snapshot can differ from current state
-after later management operations. Client transcripts prove neither. Tickets
-04/05 should reuse this separation, typed server reviews/outcomes and error/retry
-pattern with their existing services. Ticket 04 implements cancellation below;
-Ticket 05 rescheduling remains outside this implementation.
+after later management operations. Client transcripts prove neither.
+Tickets 04/05 reuse this separation, typed server reviews/outcomes and error/retry
+pattern with their existing services, as described below.
 
 ## Ticket 04 cancellation review and confirmation
 
@@ -144,6 +145,54 @@ grading infrastructure. An independent oracle checks complete appointment rows,
 immutable retries and before/after audit. Safe reports contain observations and
 metadata, with no raw IDs/proofs/messages. Executed evidence and baseline deltas
 are recorded in the Ticket 04 progress handoff. No live model quality is claimed.
+
+## Ticket 05 rescheduling review and confirmation
+
+Authenticated patient conversations expose `propose_reschedule` with exactly
+`appointment_id` and target `slot_id` (UUIDs). Select the owned source from current
+`get_my_appointments` and a real target from bounded `get_available_slots` results.
+Clarify ambiguous/missing selection or absent slots. Phantom/foreign/same-slot
+or ineligible targets are rejected by existing services without a move or hold.
+Extra identity, fee, proof, receipt or confirmation fields cannot grant authority.
+
+The original no-store response contains one `reschedule_review` action with
+`proposal_token`, `expires_at`, and the exact management summary:
+`operation: "reschedule"`, full booked `appointment` and non-null `target`.
+Target fields are `slot_id`, `doctor_id`, `clinic_id`, `doctor_name`, offset-aware
+`start_at`/`end_at`, `timezone: "Asia/Karachi"`, exact two-place decimal `fee`,
+`currency: "PKR"`, `slot_version`, `schedule_version` and `doctor_version`.
+Server text shows source/target doctor and local interval/timezone, accepted source
+fee and current target fee even when unchanged. It displays the five-minute
+expiry and target-start limit. The provider loop stops before receiving this
+review. Stored history/completed-turn replay has an empty action list and a
+proof-free historical rescheduling marker; a lost action requires a fresh review.
+
+Explicit user confirmation is a separate `POST /appointments/{id}/reschedule`,
+`{"proposal_token":"<issued-proof>"}`, live patient cookie, exact HTTPS Origin,
+`X-CSRF-Token` and one original `Idempotency-Key`. There is no confirmation tool.
+The unchanged management transaction enforces actor/action/path binding, source
+ownership/clinic/version, inclusive source 24-hour cutoff, five-minute/target-start
+proof expiry, target availability/capacity/eligibility/fee/versions and session
+validity after waits. It updates the same appointment and atomically commits
+source release, target reservation, consumed proof, retry snapshot and before/after
+audit. A stale or failed target never releases the source. Changed reviews require
+a fresh proposal and explicit confirmation. No lock spans a provider call.
+
+Initial move and exact authenticated retry return HTTP 200. Exact replay is valid
+strictly before its 24-hour deadline and describes the original move; later current
+state can differ. Mismatched/consumed/expired keys retain existing errors. After an
+ambiguous failure retain the same proof/key; committed results require no model
+narration. Use authorized appointment reads for current state.
+
+`backend/integration_tests/test_chat_reschedule_integration.py` covers protected
+review/confirmation/replay, source preservation, target changes, cutoff/deadlines,
+SDK secret exclusion and independent-connection proof/target/opposite-move,
+cancellation/reset/logout races. `evals/reschedule_v1` freezes eight dev and two
+held-out cases. The real-path runner scripts only the provider; independent state,
+retry and before/after audit graders reject corrupted outcomes and compare
+DB timestamps as instants. It runs within existing rate limits; the dedicated
+HTTP walkthrough tests completed-turn replay. Actual verification and baseline
+comparisons are recorded in PROGRESS. Mocked passes do not establish live quality.
 
 ## Backend-only walkthrough and verification
 

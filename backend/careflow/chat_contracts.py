@@ -180,6 +180,31 @@ class CancellationReview(Contract):
     expires_at: AwareDatetime
 
 
+class RescheduleTarget(BookingReviewSummary):
+    slot_version: int = Field(ge=1)
+    schedule_version: int = Field(ge=1)
+    doctor_version: int = Field(ge=1)
+
+
+class RescheduleReviewSummary(Contract):
+    operation: Literal["reschedule"]
+    appointment: CancellationAppointment
+    target: RescheduleTarget
+
+    @model_validator(mode="after")
+    def different_slot(self) -> Self:
+        if self.appointment.slot_id == self.target.slot_id:
+            raise ValueError("Invalid rescheduling target")
+        return self
+
+
+class RescheduleReview(Contract):
+    kind: Literal["reschedule_review"] = "reschedule_review"
+    proposal_token: str = Field(pattern=r"^[A-Za-z0-9_-]{43}$")
+    summary: RescheduleReviewSummary
+    expires_at: AwareDatetime
+
+
 class Metrics(Contract):
     provider_calls: int = 0
     tools: list[ToolOutcome] = Field(default_factory=list)
@@ -190,10 +215,10 @@ class Metrics(Contract):
     resolved_model: str | None = None
     sdk_version: str | None = None
     # Historical owned responses retain their original version metadata on replay.
-    prompt_version: Literal["context-v1", "booking-v1", "cancellation-v1"] = (
-        "cancellation-v1"
-    )
-    tool_schema_version: Literal["2", "3", "4"] = "4"
+    prompt_version: Literal[
+        "context-v1", "booking-v1", "cancellation-v1", "reschedule-v1"
+    ] = "reschedule-v1"
+    tool_schema_version: Literal["2", "3", "4", "5"] = "5"
 
 
 class ChatResponse(Contract):
@@ -201,7 +226,7 @@ class ChatResponse(Contract):
     status: Literal["answered", "clarification", "abstained", "unavailable", "limited"]
     text: str
     facts: list[ToolResult] = Field(default_factory=list)
-    actions: list[BookingReview | CancellationReview] = Field(
+    actions: list[BookingReview | CancellationReview | RescheduleReview] = Field(
         default_factory=list, max_length=1
     )
     citations: list[object] = Field(default_factory=list, max_length=0)

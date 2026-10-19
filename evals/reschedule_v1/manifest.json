@@ -1,0 +1,6 @@
+{
+  "dataset_version": "phase3-reschedule-v1",
+  "cases_sha256": "b75903c6246624d07e3712d805c7011107cd0871614bc5e8e885080525e035dc",
+  "synthetic": true,
+  "held_out_frozen_before_execution": true
+}

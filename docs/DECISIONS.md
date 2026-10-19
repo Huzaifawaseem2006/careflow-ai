@@ -446,3 +446,18 @@ context; live domain authority and final-release checks remain mandatory. Separa
 confirmation uses existing POST /appointments and its original proof/key retry
 semantics. Current state comes from authorized domain reads; operation replay is a
 historical snapshot. See docs/BOOKING_CHAT.md for contracts shared with 04/05.
+
+## Phase 3 Ticket 05 rescheduling action boundary - 2026-10-19
+
+Owner approved Ticket 05 and four TDD seams: HTTPS chat/existing appointment
+endpoints; real tools/services/disposable PostgreSQL with capacity/audit assertions;
+mocked Anthropic HTTP and real-path evals; existing confirmation services with
+independent connections. Reuse management.propose_change and confirm_change without
+new policy, schema, endpoint or authorization mechanics. Strict reschedule actions
+reuse the booked source snapshot and extend the booking summary with existing
+target versions. Stop the provider loop on issuance and sanitize history/replay to
+a proof-free rescheduling marker. Only a distinct authenticated user request can
+confirm. Prompt/schema becomes reschedule-v1/5 while accepting historical versions.
+No paid call, commit, push or Ticket 06 is authorized. The existing management
+transaction remains the sole authority for source/target locks, atomic moves,
+cutoff/fee/version checks and immutable retries.

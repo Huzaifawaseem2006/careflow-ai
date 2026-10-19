@@ -298,7 +298,9 @@ def finish(token: str | None, turn: Turn, result: ChatResponse) -> None:
         kind = saved.actions[0].kind
         saved.actions = []
         saved.text = (
-            "Historical cancellation review; no cancellation or capacity release. "
+            "Historical rescheduling review; no move or target hold. "
+            if kind == "reschedule_review"
+            else "Historical cancellation review; no cancellation or capacity release. "
             if kind == "cancellation_review"
             else "Historical booking review; no booking or hold. "
         ) + "Request a fresh review to obtain a new confirmation action."

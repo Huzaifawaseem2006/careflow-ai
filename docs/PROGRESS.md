@@ -1,5 +1,114 @@
 # Progress and verification ledger
 
+## 2026-10-19 - Ticket 05 final Git review and publication authorization
+
+Owner explicitly approved final scoped review of all 19 changed/new Ticket 05
+files, one commit named `feat: add AI rescheduling review and confirmation`, and
+one push to `origin/master` if review passes. This supersedes earlier no-staging/
+commit/push statements for this implementation only. No additional commit,
+Ticket 06 or paid Anthropic call is authorized.
+
+All 19 files matched the retained reviewed hashes at this checkpoint. Reuse the
+unchanged-source local evidence below: 247 PostgreSQL passes with successful
+cleanup, 270 offline/backend/eval/CI passes, 10 new mocked rescheduling passes
+and unchanged earlier baselines. Full suites are not repeated for this Git-only
+milestone. Review confirms proposal-only model access, separate authenticated
+HTTPS/origin/CSRF confirmation, unchanged atomic management transactions and
+proof-free stored history/completed-turn replay. Independent implementation
+reviews retained zero Standards/Spec actionable findings. Scope, documentation,
+secret/generated-artifact exclusions and exact staged content/whitespace are
+checked before committing.
+
+Final commit/ref/clean-tree and exact-SHA Actions evidence will be retained in
+ignored `test-results/ticket05-git-ci.json` and the final handoff. No hosted result
+is claimed at this pre-commit checkpoint; this avoids an additional tracked
+post-push documentation commit. The initial restricted network read failed;
+normal-host remote verification is used without changing Git history.
+
+## 2026-10-19 - Phase 3 Ticket 05 rescheduling implementation handoff
+
+Owner approved Ticket 05 and all four proposed TDD seams, including database
+capacity/audit assertions. Started from clean `master` at
+`a1b66aaa523da40c68796b2197f4b192edc1f8eb` (Ticket 04 implementation commit).
+Approval covers this implementation only. No paid call, staging, commit, push or
+Ticket 06 implementation is authorized or performed.
+
+Implemented authenticated proposal-only `propose_reschedule` over the existing
+management service. Strict `reschedule_review` actions carry exact source/target,
+current target fee (including unchanged fee), versions and expiry. Server rendering
+and immediate loop termination exclude proofs from provider context. History and
+completed-turn replay carry proof-free markers with empty actions. Prompt/schema
+is `reschedule-v1`/`5`, accepting historical metadata. Separate existing HTTPS/
+origin/CSRF confirmation retains ownership/clinic/session, inclusive source cutoff,
+target capacity/eligibility/fees/versions, atomic same-appointment moves and
+before/after audit, original-key retries and immutable replay snapshots. No domain
+policy, transaction, endpoint, authorization, schema, dependency or frontend change.
+See BOOKING_CHAT, API_CONTRACTS, CHAT, CONVERSATIONS and the decision entry.
+
+Changed chat contracts/orchestration, provider prompt and history sanitation;
+added rescheduling adapter, 41 PostgreSQL integration cases, versioned/checksummed
+`evals/reschedule_v1`, real-path runner and 17 offline oracle/grader tests. The
+independent oracle checks complete appointment rows, immutable retries and audit,
+normalizing timestamp instants across database offsets. Eight dev/two held-out
+cases were frozen before execution; only the external provider is scripted.
+
+Verification actually executed serially (no overlapping PostgreSQL/CI checks):
+
+- `powershell.exe -NoProfile -File scripts/postgres-tests.ps1 test` on normal host:
+  **247 passed in 1541.08s**, zero failures/errors/skips, exit 0; no new disposable
+  databases remain. Includes all 41 new cases and complete booking/auth/management/
+  permission/concurrency/idempotency/migration/readiness regression. Redacted log:
+  `test-results/ticket05-final-postgres-host.txt`; numeric stages:
+  `test-results/postgres-1420fc5a9d9f484f954261affbed68ff.timings.json`.
+- `.venv/Scripts/python -m pytest backend/tests evals/tests ci_tests -q --tb=short
+  -p no:cacheprovider --basetemp test-results/ticket05-final-offline-temp
+  --junitxml test-results/ticket05-final-offline.xml --durations=15` on normal host:
+  **270 passed in 160.83s**, zero failures/errors/skips, exit 0. Both real CI
+  subprocess checks passed within unchanged 120-second deadlines (52.86s positive,
+  50.55s intentional lint failure). Console: `ticket05-final-offline-host.txt`;
+  JUnit/nested foundation reports remain under ignored `test-results/`.
+- Full Ruff format/check, strict mypy (**96 Python files**) and pip check passed.
+  Documentation-only final handoff changes followed the passing application gates;
+  final whitespace/link/checksum/encoding/artifact/Git scope review is recorded below.
+- New mocked rescheduling evals **10 passed / 0 failed**, including two frozen
+  held-out cases: `test-results/ticket05-reschedule-evals.json`. Rerun baselines:
+  booking **8/0**, cancellation **8/0**, context **8/0**, catalog **13/0 with 2
+  pending**, unchanged from Tickets 03/04. Reports are `ticket03-booking-evals.json`,
+  `ticket04-cancellation-evals.json`, `ticket02-context-evals.json` and
+  `ticket02-catalog-evals.json`. Catalog-only pending seeds are not claimed passed.
+  All reports use current prompt/schema metadata. Mocked passes do not measure
+  live tool-selection accuracy, live account compatibility or paid-model quality.
+- TDD: first real review test failed with unavailable tool, then passed (logs
+  `ticket05-red-01-host.txt`, `ticket05-green-01b-host.txt`). Focused 25 passed in
+  168.25s, expanded run 40 passed/1 failed due eval rate-limit overrun. Removed
+  redundant eval replay request; dedicated HTTP replay assertions remain. Oracle
+  tests were red before the runner, then a timestamp-offset case failed red and
+  passed after comparing instants; all 17 offline cases passed in 1.91s. Focused
+  evidence overlaps the final suites; do not add counts.
+- Intermediate eval failures were runner expectations (old operation label/current
+  fee), rate-limit use and oracle timestamp representation; application behavior
+  required no correction. The ten-case eval body/report then passed but its command
+  failed at session finish with Windows timing-file atomic replace WinError 5
+  (`ticket05-eval-final2-host.txt`). Cleanup succeeded. The final full gate above
+  passed including timing save/cleanup; the failed command is not passing evidence.
+  Initial restricted private-temp preflight failed before DB work; subsequent DB
+  commands ran on normal host, with no credential or ACL changes.
+
+Independent code-review skill: **0 Standards / 0 Spec actionable findings** across
+the full application diff and all six new source/test/eval files. Final review also
+corrected documentation encoding/newline issues without changing application code.
+Final scope review covers 19 changed/new files, including the local ticket,
+contracts, phase plan and six new source/test/eval files. Whitespace, local Markdown
+links, UTF-8/newlines, frozen dataset checksum and generated/sensitive artifact
+exclusions passed. Reports/logs remain ignored; no real credential or generated
+artifact is included. Nothing is staged and all changes remain uncommitted on
+master at the original baseline. Ticket 05 acceptance criteria are met locally
+and its local status is resolved.
+No live Anthropic call, paid spend, hosted exact-SHA CI for this uncommitted diff,
+deployment or combined Phase 3 exit is claimed. Live quality and existing later
+release gates remain separate. Next: owner review of this uncommitted Ticket 05;
+Ticket 06 requires a separately approved fresh session. No implementation blocker.
+
 ## 2026-10-19 — Ticket 04 final Git review and publication authorization
 
 Owner explicitly approved final scoped review, one commit named
