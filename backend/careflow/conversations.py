@@ -295,11 +295,13 @@ def finish(token: str | None, turn: Turn, result: ChatResponse) -> None:
     # reviews cannot be executable actions or regain proof through turn replay.
     saved = result.model_copy(deep=True)
     if saved.actions:
+        kind = saved.actions[0].kind
         saved.actions = []
         saved.text = (
-            "Historical booking review; no booking or hold. "
-            "Request a fresh review to obtain a new confirmation action."
-        )
+            "Historical cancellation review; no cancellation or capacity release. "
+            if kind == "cancellation_review"
+            else "Historical booking review; no booking or hold. "
+        ) + "Request a fresh review to obtain a new confirmation action."
     with transaction() as connection:
         check_turn(connection, token, turn)
         if result.status not in {"unavailable", "limited"}:

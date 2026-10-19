@@ -10,7 +10,13 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from careflow.chat_api import chat_provider
-from careflow.chat_contracts import Limits, ToolCall, ToolDefinition, ToolResult
+from careflow.chat_contracts import (
+    Limits,
+    Metrics,
+    ToolCall,
+    ToolDefinition,
+    ToolResult,
+)
 from careflow.chat_provider import ProviderError, ProviderReply, ScriptedProvider
 from careflow.database import database_engine
 from careflow.identity_api import COOKIE
@@ -279,8 +285,8 @@ def build_report(
         "real_agent_path_exercised": True,
         "provider": "scripted",
         "config": Limits().model_dump(),
-        "prompt_version": "booking-v1",
-        "tool_schema_version": "3",
+        "prompt_version": Metrics().prompt_version,
+        "tool_schema_version": Metrics().tool_schema_version,
         "previous_baseline": {
             "context": {"passed": 8, "failed": 0},
             "catalog": {"passed": 13, "failed": 0, "pending": 2},

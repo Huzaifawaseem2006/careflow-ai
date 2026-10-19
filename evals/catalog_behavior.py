@@ -10,7 +10,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 from careflow.chat import run_chat
-from careflow.chat_contracts import ChatResponse, Limits, ToolCall
+from careflow.chat_contracts import ChatResponse, Limits, Metrics, ToolCall
 from careflow.chat_provider import ProviderError, ProviderReply, ScriptedProvider
 from careflow.database import database_engine
 from careflow.fixture_schema import demo_identities
@@ -331,8 +331,8 @@ async def build_report(
         "installed_anthropic_sdk": version("anthropic"),
         "requested_model": Limits().model,
         "resolved_model": None,
-        "prompt_version": "booking-v1",
-        "tool_schema_version": "3",
+        "prompt_version": Metrics().prompt_version,
+        "tool_schema_version": Metrics().tool_schema_version,
         "config": Limits().model_dump(),
         "dataset_version": manifest.dataset_version,
         "dataset_sha256": manifest.cases_sha256,

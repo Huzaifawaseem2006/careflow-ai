@@ -1,5 +1,24 @@
 # Decisions and PRD review
 
+## Phase 3 Ticket 04 cancellation boundary — 2026-10-19
+
+Owner approved Ticket 04, four TDD seams and positive/ambiguity/foreign-scope/
+bypass/stale-review/failure mocked evals. Reuse Ticket 03's original-only protected
+proof, immediate provider stop, proof-free history/replay and separate confirmed
+operation. The strict cancellation action mirrors the existing management review
+(`operation: cancel`, full owned appointment snapshot, `target: null`); no model
+receives it. `propose_cancellation` accepts only `appointment_id`, forwarding live
+session/CSRF outside model arguments to `management.propose_change`.
+
+Existing management services retain ownership/clinic, inclusive 24-hour cutoff,
+five-minute expiry, deterministic lock order, immutable 24-hour retry snapshots,
+rollback and audit authority. No domain policy, endpoint, migration, authorization
+system or frontend changes. Current prompt/schema versions advance to
+`cancellation-v1`/`4`; historical version metadata remains accepted on replay.
+Evals reuse existing scripted provider/snapshots/grading with a cancellation oracle
+that rejects invented success and unauthorized changes to complete records. Live
+quality, paid runs, commits/pushes and Ticket 05 remain separately gated.
+
 ## Standalone test tooling — approved scope, 2026-10-19
 
 Owner approved the Phase 2 tooling plan with unchanged test/security/Git/paid-call

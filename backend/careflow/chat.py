@@ -18,6 +18,12 @@ from careflow.chat_booking import (
     execute_booking,
     render_review,
 )
+from careflow.chat_cancellation import (
+    CANCELLATION_TOOL,
+    CancellationArguments,
+    execute_cancellation,
+    render_cancellation_review,
+)
 from careflow.chat_contracts import (
     ChatResponse,
     Contract,
@@ -41,7 +47,8 @@ from careflow.chat_tools import (
 DISCLOSURE = "Synthetic demo: fictional clinic data only. "
 ABSTENTION = (
     "I can help with catalog and fee lookup, and owned appointment lookup in "
-    "signed-in conversations, persisted availability and booking reviews. "
+    "signed-in conversations, persisted availability, booking and cancellation "
+    "reviews. "
     "Please specify an unambiguous doctor/date/time or select a real slot. "
     "Chat cannot confirm appointments. I have no verified policy evidence and cannot "
     "reveal private instructions or secrets, diagnose, prescribe or assess urgency. "
@@ -67,7 +74,7 @@ async def run_chat(
     facts: list[ToolResult] = []
     public_tools = (*TOOLS, AVAILABILITY_TOOL)
     tools = (
-        (*public_tools, APPOINTMENT_TOOL, BOOKING_TOOL)
+        (*public_tools, APPOINTMENT_TOOL, BOOKING_TOOL, CANCELLATION_TOOL)
         if private_token is not None
         else public_tools
     )
@@ -134,12 +141,14 @@ async def run_chat(
                     if call.name in {
                         "get_my_appointments",
                         "propose_booking",
+                        "propose_cancellation",
                         "get_available_slots",
                     }:
                         import json
 
                         models: dict[str, type[Contract]] = {
                             "propose_booking": BookingArguments,
+                            "propose_cancellation": CancellationArguments,
                             "get_available_slots": AvailabilityArguments,
                             "get_my_appointments": AppointmentArguments,
                         }
@@ -150,11 +159,18 @@ async def run_chat(
                         validate_call(call)
                 except ValidationError:
                     result = ToolResult(name=call.name, status="invalid")
-                    if call.name in {"get_available_slots", "propose_booking"}:
+                    if call.name in {
+                        "get_available_slots",
+                        "propose_booking",
+                        "propose_cancellation",
+                    }:
                         response.status = "clarification"
-                        response.text = (
-                            DISCLOSURE
-                            + "Please specify an unambiguous doctor, date and time "
+                        response.text = DISCLOSURE + (
+                            "Please select one unambiguous owned appointment "
+                            "for cancellation review. "
+                            "No cancellation or capacity release occurred."
+                            if call.name == "propose_cancellation"
+                            else "Please specify an unambiguous doctor, date and time "
                             "with UTC offset, or select a returned slot for review. "
                             "No booking or hold was created."
                         )
@@ -163,14 +179,24 @@ async def run_chat(
                         )
                         break
                 else:
-                    if call.name == "propose_booking":
-                        review = await run_in_threadpool(
-                            execute_booking, call, private_token, private_csrf
+                    if call.name in {"propose_booking", "propose_cancellation"}:
+                        review = (
+                            await run_in_threadpool(
+                                execute_booking, call, private_token, private_csrf
+                            )
+                            if call.name == "propose_booking"
+                            else await run_in_threadpool(
+                                execute_cancellation, call, private_token, private_csrf
+                            )
                         )
                         if authorize is not None:
                             await run_in_threadpool(authorize)
                         response.actions = [review]
-                        response.text = render_review(review)
+                        response.text = (
+                            render_review(review)
+                            if review.kind == "booking_review"
+                            else render_cancellation_review(review)
+                        )
                         response.status = "answered"
                         metrics.tools.append(
                             ToolOutcome(

@@ -153,6 +153,33 @@ class BookingReview(Contract):
     expires_at: AwareDatetime
 
 
+class CancellationAppointment(AppointmentFact):
+    patient_id: UUID
+    clinic_id: UUID
+    slot_id: UUID
+    created_at: AwareDatetime
+    status: Literal["booked"]
+
+    @model_validator(mode="after")
+    def valid_scope(self) -> Self:
+        if self.clinic_id != CLINIC["id"] or self.end_at <= self.start_at:
+            raise ValueError("Invalid cancellation review")
+        return self
+
+
+class CancellationReviewSummary(Contract):
+    operation: Literal["cancel"]
+    appointment: CancellationAppointment
+    target: None
+
+
+class CancellationReview(Contract):
+    kind: Literal["cancellation_review"] = "cancellation_review"
+    proposal_token: str = Field(pattern=r"^[A-Za-z0-9_-]{43}$")
+    summary: CancellationReviewSummary
+    expires_at: AwareDatetime
+
+
 class Metrics(Contract):
     provider_calls: int = 0
     tools: list[ToolOutcome] = Field(default_factory=list)
@@ -163,8 +190,10 @@ class Metrics(Contract):
     resolved_model: str | None = None
     sdk_version: str | None = None
     # Historical owned responses retain their original version metadata on replay.
-    prompt_version: Literal["context-v1", "booking-v1"] = "booking-v1"
-    tool_schema_version: Literal["2", "3"] = "3"
+    prompt_version: Literal["context-v1", "booking-v1", "cancellation-v1"] = (
+        "cancellation-v1"
+    )
+    tool_schema_version: Literal["2", "3", "4"] = "4"
 
 
 class ChatResponse(Contract):
@@ -172,7 +201,9 @@ class ChatResponse(Contract):
     status: Literal["answered", "clarification", "abstained", "unavailable", "limited"]
     text: str
     facts: list[ToolResult] = Field(default_factory=list)
-    actions: list[BookingReview] = Field(default_factory=list, max_length=1)
+    actions: list[BookingReview | CancellationReview] = Field(
+        default_factory=list, max_length=1
+    )
     citations: list[object] = Field(default_factory=list, max_length=0)
     correlation_id: UUID = Field(default_factory=uuid4)
     metrics: Metrics = Field(default_factory=Metrics)

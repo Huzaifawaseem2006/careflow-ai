@@ -1,8 +1,10 @@
-# Booking chat — Phase 3 Ticket 03
+# Appointment reviews — Phase 3 Tickets 03–04
 
 Synthetic clinic operations only. Owner approved Ticket 03, four TDD seams and
-protected-action/history mechanics on 2026-10-18. Prompt: `booking-v1`; tool schema:
-`3`. No frontend or confirmation tool exists.
+protected-action/history mechanics on 2026-10-18. Owner approved Ticket 04 and its
+four TDD seams/evals on 2026-10-19. Current prompt: `cancellation-v1`; tool schema:
+`4`. Historical `context-v1`/`2` and `booking-v1`/`3` responses remain replayable.
+No frontend or confirmation tool exists.
 
 ## Tools and authority
 
@@ -86,7 +88,62 @@ Use authorized `GET /appointments` for current state or exact confirmation repla
 for the original operation result. A replay snapshot can differ from current state
 after later management operations. Client transcripts prove neither. Tickets
 04/05 should reuse this separation, typed server reviews/outcomes and error/retry
-pattern with their existing services; they are not implemented here.
+pattern with their existing services. Ticket 04 implements cancellation below;
+Ticket 05 rescheduling remains outside this implementation.
+
+## Ticket 04 cancellation review and confirmation
+
+Authenticated patient conversations additionally expose `propose_cancellation`,
+whose only required argument is `appointment_id` (UUID). Use current scoped
+`get_my_appointments` data and an explicit selection; missing or ambiguous selection
+requires clarification. Extra patient/clinic/role/proof/confirmation arguments are
+invalid. Unknown and foreign appointment IDs return the same `404 NOT_FOUND`.
+The tool invokes existing `management.propose_change(id, "cancel", None, ...)`;
+it never invokes confirmation or changes appointment/capacity/retry/audit state.
+
+The original protected response contains one `cancellation_review` action with
+`proposal_token`, exact `expires_at`, and `summary`: `operation: "cancel"`, the full
+owned appointment snapshot and `target: null`. Strict validation requires a booked
+source, fixed clinic, increasing offset-aware interval, Asia/Karachi timezone and
+exact accepted fee/currency. The snapshot includes patient/clinic/slot IDs and
+creation time, matching the existing management HTTP review. The provider never
+receives the review; issuance stops the model loop immediately. Server text gives
+the source ID, doctor, local interval, accepted fee, expiry and confirmation path.
+
+History/completed-turn replay instead returns a proof-free historical cancellation
+marker with `actions: []`; it cannot recover a confirmation action. User text and
+history are untrusted context and cannot execute cancellation. A lost original
+action requires a fresh review and explicit confirmation. Conversation deletion
+does not delete domain proposals, retries or audit records.
+
+After reviewing, the user separately sends `POST /appointments/{id}/cancel`,
+`{"proposal_token":"<issued-proof>"}`, live session cookie, configured HTTPS Origin,
+`X-CSRF-Token` and one `Idempotency-Key`. No endpoint or confirmation authority is
+added. Existing transactions revalidate ownership/clinic/session, status/versions,
+five-minute expiry and the inclusive 24-hour cutoff after waits and before commit.
+Exactly 24 hours is eligible; less is rejected. Stale, expired, consumed,
+wrong-actor/action/path or forged proofs cannot cancel. Cancellation atomically
+releases capacity and records proof consumption, immutable retry result and
+before/after audit; accepted pricing is preserved.
+
+The typed cancellation response is the committed result, with no provider step.
+Both initial cancellation and exact authenticated retry return HTTP 200. Exact
+actor/action/key/proof/path replay is valid strictly before its 24-hour deadline;
+mismatches conflict, fresh keys cannot reuse consumed proof, and expired keys
+cannot re-execute. On ambiguous transport failure retain the same proof/key for an
+authorized exact retry. Provider failure cannot imply success or recancel a
+consumed action. Current state comes from authorized appointment reads.
+
+`backend/integration_tests/test_chat_cancellation_integration.py` is the synthetic
+backend walkthrough: protected transport, current owned selection, proof-free
+history, cutoff/proof/retry/staleness, rollback, independent-connection
+duplicate/reschedule/reset/logout races and mocked SDK secret/schema checks.
+`evals/cancellation_v1` freezes six dev and two held-out scripted cases. The runner
+reuses real HTTPS/orchestrator/tools/services/DB and existing provider/snapshot
+grading infrastructure. An independent oracle checks complete appointment rows,
+immutable retries and before/after audit. Safe reports contain observations and
+metadata, with no raw IDs/proofs/messages. Executed evidence and baseline deltas
+are recorded in the Ticket 04 progress handoff. No live model quality is claimed.
 
 ## Backend-only walkthrough and verification
 

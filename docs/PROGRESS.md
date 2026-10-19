@@ -1,5 +1,111 @@
 # Progress and verification ledger
 
+## 2026-10-19 — Ticket 04 final Git review and publication authorization
+
+Owner explicitly approved final scoped review, one commit named
+`feat: add AI cancellation review and confirmation`, and one push to
+`origin/master` if review passes. The actual scope is **22 files** (16 tracked
+changes and six new files), rather than the 18 in the approval message; all are
+the previously reviewed Ticket 04 implementation/test/eval/documentation paths.
+No additional feature or unrelated file is included. This one-time approval
+supersedes earlier no-commit/push statements for Ticket 04 only.
+
+Final scoped review retains **0 Standards / 0 Spec actionable findings**.
+Cancellation still requires a distinct authenticated HTTPS/origin/CSRF operation;
+the model issues only a review, and stored history/replay contains no executable
+action or reusable proof. Reuse unchanged-source evidence below: **206 PostgreSQL
+passes with successful cleanup**, **253 offline/backend/eval/CI passes**, eight new
+mocked cancellation passes and unchanged prior baselines. Full suites are not
+repeated for this Git milestone. Credential/generated-artifact exclusions,
+documentation consistency and exact staged content/whitespace are checked before
+the authorized commit. Local HEAD and live origin/master were both verified at
+`86593c63078c5cfd99e4f6e46a7c316055136b64` before publication.
+
+Final commit/ref/clean-tree and exact-SHA Actions evidence will be retained in
+ignored `test-results/ticket04-git-ci.json` and the final handoff; no hosted result
+is claimed at this pre-commit checkpoint. This avoids an unapproved second
+documentation commit. No additional commit, Ticket 05 or paid call is approved.
+
+## 2026-10-19 — Phase 3 Ticket 04 cancellation implementation handoff
+
+Owner approved Ticket 04 and all four TDD seams plus the proposed mocked evals.
+Started from clean `master` at `86593c63078c5cfd99e4f6e46a7c316055136b64`.
+Approval covers this implementation only; no paid call, commit, push or Ticket 05
+is authorized. Earlier entries denying Ticket 04 approval describe prior sessions.
+
+Implemented authenticated proposal-only `propose_cancellation` through the existing
+management service. Strict actions carry the exact source/action/expiry review;
+the server stops before any provider continuation. Original protected transport
+alone carries proof; stored history/replay uses a cancellation marker and empty
+actions. Separate existing HTTPS/origin/CSRF confirmation retains ownership/clinic,
+inclusive 24-hour cutoff, versions, five-minute expiry, immutable 24-hour retries,
+capacity/transaction safety and before/after audit. No endpoint, domain policy,
+authorization system, schema, dependency or frontend change.
+
+Changed chat contracts/orchestration, the cancellation adapter, provider prompt and
+history sanitation; added PostgreSQL HTTP/tool/SDK/service/concurrency tests and
+frozen `evals/cancellation_v1` with an independent state/audit oracle. Existing
+baseline runners now report current metadata rather than hardcoded older versions.
+Prompt/schema: `cancellation-v1`/`4`; stored legacy metadata remains accepted.
+Shared contracts are in [BOOKING_CHAT.md](BOOKING_CHAT.md), with API/chat/
+conversation docs, decisions and the phase plan updated.
+
+Verification actually executed, with no overlapping database/CI regressions:
+
+- Full normal-host `powershell.exe -NoProfile -File scripts/postgres-tests.ps1 test`:
+  **206 passed in 1110.60s**, zero failures/errors/skips, exit 0; **no new disposable
+  databases remain**. Covers migration/readiness, restricted runtime grants,
+  permissions, booking/management/conversation/auth races and all 31 new
+  cancellation integration cases. Redacted console:
+  `test-results/ticket04-final-postgres-host.txt`; numeric stages:
+  `test-results/postgres-bc7482d9e062440a923d71ba70181bd1.timings.json`.
+- Full normal-host `.venv/Scripts/python -m pytest backend/tests evals/tests ci_tests
+  -q --tb=short -p no:cacheprovider --basetemp test-results/ticket04-final-offline-temp
+  --junitxml test-results/ticket04-final-offline.xml --durations=15`:
+  **253 passed in 148.28s**, zero failures/errors/skips, exit 0. Positive/intentional
+  lint-failure CI subprocess checks completed in 48.06s/52.44s within unchanged
+  120-second deadlines. Console: `test-results/ticket04-final-offline-host.txt`;
+  XML and nested foundation reports retain verification evidence.
+- Full Ruff format/check and strict mypy: passed, **92 Python files**. `pip check`
+  passed; dependencies are unchanged. Both real nested foundation runs also
+  exercised format/lint/types/unit checks; the negative run's lint failure was
+  intentional. Final documentation/link/whitespace and Git review follow below.
+- New real-path mocked cancellation evals: **8 passed / 0 failed**, six dev and two
+  frozen held-out; `test-results/ticket04-cancellation-evals.json`. Existing
+  baselines reran: booking **8/0**, context **8/0**, catalog **13/0 with 2 pending**,
+  unchanged from Ticket 03. Reports: `ticket03-booking-evals.json`,
+  `ticket02-context-evals.json`, `ticket02-catalog-evals.json` under `test-results/`.
+  Catalog-only pending seeds are not claimed passed by the cancellation runner.
+  Only the provider is scripted; HTTP/tools/services/DB and state/audit oracles are
+  real. These results do not measure live model quality.
+- TDD evidence: the initial cancellation walkthrough failed because the tool was
+  unavailable (`ticket04-red-01-host.txt`), then passed (`ticket04-green-01-host.txt`).
+  Focused **21 passed in 243.64s**, then **30 passed in 168.90s** as SDK/race/rollback
+  coverage was added. The eval runner first failed when absent, then hit the
+  existing login limiter: fixed by reusing authenticated sessions and limiting
+  replay requests, without relaxing limits. Its focused eight-case run passed in
+  **20.31s**. The oracle test caught invented success on an already-cancelled source
+  red, then all **16 oracle/grader cases passed in 1.60s**. Focused counts overlap
+  final suites; do not add them. Red/green console logs remain ignored.
+- Initial restricted private-temp preflight failed before database work. The same
+  selected test ran on the normal host, as required. All passing evidence above
+  uses normal-host execution; credentials/ACLs/fixture safeguards were unchanged.
+
+All Ticket 04 acceptance checks passed locally; the ticket is resolved. Independent
+read-only final review reports **0 Standards / 0 Spec actionable findings** across
+the full tracked diff and all six new source/test/dataset files. Complete Git scope,
+whitespace, local documentation links, frozen dataset checksum and sensitive/
+generated-artifact inspection passed. Only scoped Ticket 04 paths are changed;
+logs, XML, timing reports and eval outputs remain ignored. No real credential or
+generated artifact is included. Application source is unchanged from the passing
+full suites; only the final handoff/status documentation followed those checks.
+Changes are uncommitted on `master` at the original checkpoint; nothing is staged.
+No live Anthropic run,
+paid spend, hosted CI for this uncommitted diff, deployment or full Phase 3 exit is
+claimed. Live quality and existing later-phase release gates remain unverified.
+Next task: owner review of Ticket 04; Ticket 05 needs a separately approved fresh
+session. No implementation blocker remains.
+
 ## 2026-10-19 — Standalone tooling publication authorization
 
 After the local handoff below, the owner explicitly authorized final review of

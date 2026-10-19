@@ -2,13 +2,15 @@
 
 Ticket 02 adds [disclosed owned conversations and appointment lookup](CONVERSATIONS.md).
 Ticket 03 adds [persisted availability and protected booking reviews](BOOKING_CHAT.md).
+Ticket 04 adds cancellation reviews through the same protected action transport.
 The single-turn path remains public-only. Current prompt/schema versions are
-`booking-v1`/`3`; historical `context-v1`/`2` remain replayable. Catalog argument
+`cancellation-v1`/`4`; historical `context-v1`/`2` and `booking-v1`/`3`
+remain replayable. Catalog argument
 schemas are unchanged.
 
 The public single-turn endpoint performs catalog and persisted availability lookup,
 with no durable conversation content, private patient access, appointment writes,
-RAG or handoff. Booking review is restricted to authenticated conversations.
+RAG or handoff. Booking/cancellation reviews require authenticated conversations.
 Only synthetic input belongs in this demo. Live account/model access and clinical
 wording approval remain unverified; deterministic tests are not model quality.
 

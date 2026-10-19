@@ -1,0 +1,6 @@
+{
+  "dataset_version": "phase3-cancellation-v1",
+  "cases_sha256": "9dcc25bf6778149c938129c09a8ac5bbd4bb1dc9c6d8db1cc87fe4681c186071",
+  "synthetic": true,
+  "held_out_frozen_before_execution": true
+}

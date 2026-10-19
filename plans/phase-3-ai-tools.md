@@ -23,7 +23,10 @@ unchanged limits; 8 new booking eval passes and unchanged context/catalog baseli
 See the [handoff](../docs/PROGRESS.md) and [shared action contracts](../docs/BOOKING_CHAT.md).
 Owner then authorized one Ticket 03 implementation commit/push after final scoped
 review; exact-SHA Actions/ref results will be retained in the Git handoff record.
-Tickets 04–06, paid runs and further commits/pushes are not authorized.
+Owner approved Ticket 04 implementation and its four TDD seams plus mocked evals
+on 2026-10-19, starting from clean master `86593c6`. Ticket 04 verification/handoff
+is recorded in `docs/PROGRESS.md`. Tickets 05–06, paid runs and further
+commits/pushes remain unauthorized.
 The six-ticket dependency structure is unchanged. See the approved
 [D10 mechanics](../.scratch/phase-3-ai-tools/d10-mechanics-review.md) and
 [conversation contracts](../docs/CONVERSATIONS.md).
@@ -162,8 +165,9 @@ continuation/disclosure criteria, 03–05's proof-exclusion/failure criteria and
 06's live/usage/cost evidence. Six tickets and dependency edges stay unchanged.
 Existing service seams need no standalone prefactoring ticket. Update actual
 ticket/progress/contracts and material decisions at each completion, recording
-executed results and blockers. Current: owner review of Ticket 02; Ticket 03 requires
-a separately approved fresh session after Ticket 02 handoff.
+executed results and blockers. Current: Ticket 04 is implemented and locally
+verified (206 PostgreSQL / 253 offline tests; 8 new scripted eval passes);
+Ticket 05 requires a separately approved fresh session after Ticket 04 handoff.
 
 ## Official sources checked 2026-10-18
 

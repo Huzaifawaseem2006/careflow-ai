@@ -266,3 +266,15 @@ See [owned conversation HTTP, retry, privacy and purge contracts](CONVERSATIONS.
 These add versioned disclosure, explicit-acceptance creation, owned bounded history,
 serialized turns and deletion. Existing appointment endpoints are unchanged;
 no model-callable confirmation or proposal tool is added in this ticket.
+
+## Phase 3 Ticket 04 cancellation chat action
+
+Authenticated conversation turns expose proposal-only `propose_cancellation` with
+exactly `appointment_id` (UUID). The original no-store response can carry one
+`cancellation_review` action: `proposal_token`, `expires_at`, and exact management
+`summary` (`operation: "cancel"`, full owned `appointment`, `target: null`).
+History and completed-turn replay return only a proof-free marker and empty
+actions. No model-callable confirmation exists. Separate explicit confirmation
+uses the unchanged `POST /appointments/{identifier}/cancel` contract above.
+See [review, error and reconciliation contracts](BOOKING_CHAT.md). Current
+prompt/schema versions are `cancellation-v1`/`4`; earlier snapshots remain valid.

@@ -12,7 +12,13 @@ from uuid import UUID, uuid4
 
 from careflow import conversations
 from careflow.chat_api import chat_provider
-from careflow.chat_contracts import Limits, ToolCall, ToolDefinition, ToolResult
+from careflow.chat_contracts import (
+    Limits,
+    Metrics,
+    ToolCall,
+    ToolDefinition,
+    ToolResult,
+)
 from careflow.chat_provider import ProviderReply, ScriptedProvider
 from careflow.database import database_engine
 from careflow.identity import sign_out
@@ -279,8 +285,8 @@ def build_report(
         "mode": "mocked-real-http-postgresql",
         "provider": "scripted",
         "partition": partition,
-        "prompt_version": "booking-v1",
-        "tool_schema_version": "3",
+        "prompt_version": Metrics().prompt_version,
+        "tool_schema_version": Metrics().tool_schema_version,
         "results": results,
         "passed": sum(r["status"] == "passed" for r in results),
         "failed": sum(r["status"] == "failed" for r in results),
