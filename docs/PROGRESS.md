@@ -1,5 +1,122 @@
 # Progress and verification ledger
 
+## 2026-10-20 — Ticket 06 independent review and authorized publication
+
+Owner explicitly authorized independent review, scoped fixes, local verification,
+then staging/commit/push to the existing remote branch if those gates pass. Live
+model/API calls are prohibited for this task; D01/D11 and frozen-case/spending
+policy changes are not authorized. Earlier no-Git statements below are historical.
+
+Fresh Standards review found one provenance issue; fresh Spec review found two
+execution/metric issues. All three were reproduced with offline red tests and
+fixed: compare saved SDK with the installed SDK and hash migration/dependency
+inputs; reject nondefault/invalid effective `CHAT_*` limits before application or
+provider execution; propagate blocked/failed live quality into the CLI exit.
+Reports use null configuration on a configuration block. Focused mocked-case exit
+behavior is retained. Both reviewers confirmed resolution and no new actionable
+findings. The frozen 32-case checksum and spending policy are unchanged; no
+production backend/domain/auth/prompt/schema changes were introduced.
+
+Newly executed publication verification:
+
+| Check | Result | Ignored evidence |
+| --- | --- | --- |
+| Focused red/green report/config/exit regression | 10 failures before fixes, **20 passed** after fixes, 8.76s | `test-results/ticket06-publication-red2.xml`, `ticket06-publication-green.xml` |
+| Fresh real PostgreSQL Ticket 06 suite | **36 passed**, 340.33s, no skips; no new disposable DBs remain | `test-results/ticket06-publication-postgres.txt`; associated numeric timing artifact |
+| Regenerated aggregate with current SDK/schema/dependency fingerprint | **32 passed**, zero failed/blocked/pending/skipped; scripted live quality remains null | `test-results/ticket06-publication-mocked.json` |
+| Final full offline/backend/eval/CI subprocess regression | **307 passed**, 249.10s, no skips | `test-results/ticket06-publication-final-offline.txt`, `ticket06-publication-final-offline.xml` |
+| Ruff format/lint, strict mypy | Passed across 103 Python files | final local console and passing nested foundation checks |
+| Dependency consistency | `pip check` passed | publication review console |
+
+The initial fresh offline run also passed 297 tests before adding the ten review
+regressions (`ticket06-publication-offline.xml`, 169.83s). These counts overlap;
+they are not added together. The previous full **283-test PostgreSQL** regression
+and earlier baseline results below are **reused recorded evidence**, not newly
+executed full-suite results. File hashes matched the prior handoff at review
+start. Only evaluation metadata/configuration/exit handling and its tests changed;
+the fresh 36-test suite reran every affected real-path case and failure control.
+No full backend-suite rerun is claimed for this publication review.
+
+Publication checkpoint: local gates and independent reviews pass. Final scope,
+documentation links, sensitive/generated artifacts, exact staged content and
+whitespace are reviewed before committing. One scoped commit and normal push to
+`origin/master` are authorized; no history rewrite. Exact local/remote SHA and
+hosted Actions status will be retained in ignored
+`test-results/ticket06-publication-git-ci.json` and reported after publication.
+Hosted success is **pending at this pre-commit checkpoint**, avoiding an additional
+tracked post-push documentation commit. The tracker remains ready-for-human:
+**Ticket 06/Phase 3 are not complete** without live quality and D01/D11 approval.
+No paid calls were performed. Next action is to satisfy those existing gates
+under separate authorization; do not begin another implementation ticket/phase.
+
+## 2026-10-19 — Phase 3 Ticket 06 technical handoff; Phase 3 exit blocked
+
+Owner approved Ticket 06 implementation and three TDD seams: runner/shared grading,
+mocked Anthropic protocol/budget controls, and real orchestrator/services/disposable
+PostgreSQL. Starting revision is `78f3f3e9bfedea07c73f8012fa142000b67d6585` on
+`master`. No paid run, commit, push or next-phase work was authorized/performed.
+
+Implemented the frozen 32-case dataset (23 held-out/nine development), shared
+real-path harness, safe mode-separated reports, actual account mapping, four
+negative gate controls, read-only model probe and durable cumulative spend ledger.
+The fixed `phase3-eval` runner reuses DPAPI credentials in child processes only;
+ordinary tests strip API keys. No production domain/auth/prompt/endpoint or schema
+changes. See [evaluation guide](PHASE3_EVALUATION.md) for checksum, cases, command,
+cost methodology, retention and approval record. Material choices are in DECISIONS.
+
+Final verification (normal Windows host, serial database/CI runs, unchanged limits):
+
+| Check | Result | Ignored evidence |
+| --- | --- | --- |
+| Full real PostgreSQL integration | **283 passed**, 2365.43s; no skips; no new disposable DBs remain | `test-results/ticket06-final-postgres-02.txt`, `postgres-7f18cde38d0d46348b4b4add09fe5d80.timings.json` |
+| Full offline/backend/eval/CI subprocess regression | **297 passed**, 230.66s; no skips | `test-results/ticket06-final-offline.txt`, `ticket06-final-offline.xml` |
+| Combined current-source mocked matrix | **32 passed**, zero failed/blocked/pending/skipped; live quality null | `test-results/ticket06-combined-mocked-final.json`, individual `ticket06-mocked-P3-*.json` |
+| Deliberate wrong tool/fabricated success/cross-user/unconfirmed mutation | All four tests passed by rejecting observations and returning failure | `test-results/ticket06-control-*.json`, full PG console |
+| Focused runner/budget/grader tests | **83 passed**, 17.41s (overlaps full suite) | `test-results/ticket06-tooling-final.xml` |
+| Ruff format/lint | Passed, 103 Python files formatted | final console |
+| Strict mypy / pip check | Passed, 103 source files / no broken requirements | final console |
+| Standards / Spec independent read-only review | Zero remaining actionable findings | session review outputs |
+| Unapproved live dispatch | **23 blocked**, zero executed; no model quality estimate | `test-results/ticket06-live-blocked-final.json` |
+
+Commands: `powershell.exe -NoProfile -File scripts/postgres-tests.ps1 test`;
+`.venv/Scripts/python -m pytest backend/tests evals/tests ci_tests -q --tb=short
+-p no:cacheprovider --basetemp test-results/ticket06-final-offline-temp
+--junitxml test-results/ticket06-final-offline.xml --durations=15`;
+`python -m evals.phase3_gate --combine-mocked --report
+test-results/ticket06-combined-mocked-final.json`; Ruff format/check on
+`backend scripts ci_tests evals`, mypy on those paths and `pip check`.
+
+Baseline comparison: the full PG run reexecuted catalog **13 passed/two pending**
+(the historical catalog-only future cases remain pending), context **8**, booking
+**8**, cancellation **8**, rescheduling **10**, all unchanged. The new 32-case matrix
+has no prior model-quality measurement. No nominal unauthorized reads/writes,
+unconfirmed mutations, duplicate bookings or critical safety failures were
+observed. Injected negative controls are intentionally failed observations, not
+nominal failures. Scripted results make no claim about live Claude accuracy.
+
+Retained failures: `ticket06-final-postgres-01.txt` reports 279 passed/three failed/
+one error over 19594.49s, including a multi-hour host/tool interruption. Login setup,
+connection startup and expired-turn cases recovered unchanged in the final full
+run. P3-013 revealed a real grader representation defect: PostgreSQL JSON trimmed
+fractional zeros while Python snapshots retained them. Focused red tests proved it;
+timestamp canonicalization fixed cancellation/rescheduling comparisons without
+relaxing state checks. Aggregate report labeling and live-quality denominator
+review findings also have red/green controls. Earlier setup/query/host failures,
+split-matrix 31-pass/one-blocked run and isolated context recovery remain in
+`test-results/ticket06-*`; they are not silently counted as passing full gates.
+
+Remaining mandatory gates: **live model quality blocked**, with zero paid calls,
+zero prior/current charged spend and no fabricated usage/cost. A separate proposal
+for `claude-sonnet-5-5`, P3-001–023, maximum 120 Messages calls/USD 4.50 is pending;
+key/account access/retention acknowledgment also remain prerequisites. USD 5 is
+cumulative, not spending authorization. Reverify dated pricing before a later UTC
+date's run. D01/D11 exact wording and named-reviewer approval remain blocked.
+Entry-revision hosted Actions passed (retained `test-results/ticket05-git-ci.json`);
+the eventual Ticket 06 exact-SHA hosted result is pending separate commit/push
+approval. No extra manual CI experiment is required. **Ticket 06 is
+ready-for-human; Phase 3 is not complete.** Next work is to satisfy these existing
+gates in this ticket, with separate Git approval when requested, not start Phase 4.
+
 ## 2026-10-19 - Ticket 05 final Git review and publication authorization
 
 Owner explicitly approved final scoped review of all 19 changed/new Ticket 05

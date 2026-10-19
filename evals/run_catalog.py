@@ -17,7 +17,7 @@ from careflow.catalog_schema import doctors, specialties
 from careflow.database import database_engine
 from careflow.fixture_schema import clinics
 from careflow.fixtures import CLINIC, apply_fixtures
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine, event, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from evals.catalog_behavior import ROOT, build_report, state_digest
@@ -33,6 +33,16 @@ def disposable_database() -> Iterator[None]:
     admin: Engine | None = None
     database = "careflow_test_" + uuid4().hex
     created = False
+
+    def local_connect_budget(
+        dialect: object, record: object, args: object, params: dict[str, object]
+    ) -> None:
+        # Match the integration fixture's existing local startup allowance for
+        # this helper's own disposable database, including nested eval runs.
+        if params.get("dbname") in {"postgres", database}:
+            params["connect_timeout"] = 10
+
+    event.listen(Engine, "do_connect", local_connect_budget)
     try:
         admin = database_engine()
         if (
@@ -62,6 +72,7 @@ def disposable_database() -> Iterator[None]:
         finally:
             if admin is not None:
                 admin.dispose()
+            event.remove(Engine, "do_connect", local_connect_budget)
             if previous is None:
                 os.environ.pop("DATABASE_URL", None)
             else:

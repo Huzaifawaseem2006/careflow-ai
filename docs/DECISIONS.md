@@ -1,5 +1,42 @@
 # Decisions and PRD review
 
+## Ticket 06 publication review corrections — 2026-10-19
+
+Independent review found three evaluation-integrity gaps. Bind combined evidence
+to the currently installed SDK and migration/dependency inputs, reject invalid or
+nondefault environment-driven application limits before case dispatch, and include
+live held-out quality status in the executable exit. Preserve focused mocked exits,
+the frozen 32-case bytes, application behavior and cumulative spending policy.
+These corrections have offline red/green regression coverage; no provider calls
+are needed to verify them. Owner authorized scoped commit/push after review/local
+verification, explicitly prohibiting live calls and leaving product/Phase 3 gates
+unapproved. This supersedes earlier no-Git statements for this publication only.
+
+## Phase 3 Ticket 06 evaluation boundaries — 2026-10-19
+
+Freeze 32 synthetic cases (23 held-out, nine development) before tuning. Exercise
+the real orchestrator/services/disposable PostgreSQL in both modes, with only the
+external provider replaced. Reuse transactional graders and require complete
+held-out coverage for live quality: 22 model-observed cases, excluding the one
+backend-only ownership case from model accuracy while retaining its safety gate.
+Report Wilson uncertainty; mocked quality remains null. Incomplete/live-blocked
+evidence never closes Phase 3.
+
+Persist cumulative spend in an ignored SQLite ledger using conservative per-call
+reservations, no SDK retries/fallbacks and unresolved-charge blocking. Previous
+Phase 3 paid spend is zero. Owner approval of model/cases/max cost and retention
+is separate from implementation approval; no paid run has been authorized or
+executed. The fixed local `phase3-eval` credential runner preserves the API key
+only for that explicit operation, rejects CI/options, keeps DPAPI database secrets
+out of the parent environment and checks teardown. Ordinary tests strip the key.
+
+The combined regression revealed an oracle precision mismatch: PostgreSQL JSON
+timestamps can trim fractional zeros while Python audit/retry snapshots retain
+them. Canonicalize creation timestamps before existing strict comparisons;
+preserve all other state assertions. Evaluation database connections get the same
+10-second startup allowance as existing disposable fixtures, confined to their
+maintenance/fresh database targets; production limits stay unchanged.
+
 ## Phase 3 Ticket 04 cancellation boundary — 2026-10-19
 
 Owner approved Ticket 04, four TDD seams and positive/ambiguity/foreign-scope/

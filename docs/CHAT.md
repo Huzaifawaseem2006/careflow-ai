@@ -129,7 +129,8 @@ before any call. Invalid configuration returns a safe 503.
 `CHAT_ENABLED=true` and server-only `ANTHROPIC_API_KEY` must both be present for a
 live provider. Defaults remain disabled even if a key exists. No .env autoload,
 key provisioning or key inspection is added. Each paid run still requires owner
-approval; the Ticket 06 cumulative ledger/live gate is not implemented here.
+approval; the separate [Ticket 06 evaluation gate](PHASE3_EVALUATION.md) now
+provides cumulative paid-run accounting. Live quality remains unverified.
 Transport uses the fixed official HTTPS host, disables environment proxies and
 redirects, disables SDK telemetry and suppresses its body-emitting request logger.
 Application logs never contain keys, bodies, cookies, CSRF or thinking.

@@ -60,6 +60,22 @@ def test_oracle_rejects_invented_success_on_an_already_cancelled_source() -> Non
     assert not cancellation_integrity(before, after, "synthetic-appointment", True)
 
 
+def test_oracle_accepts_postgres_trimmed_creation_timestamp_in_audit() -> None:
+    before, after = evidence()
+    for state in (before, after):
+        row = json.loads(next(iter(state[0])))
+        row["created_at"] = "2026-10-19T04:00:00.1+00:00"
+        state[0] = {json.dumps(row)}
+    retry = json.loads(next(iter(after[2])))
+    retry["response_snapshot"]["created_at"] = "2026-10-19T04:00:00.100000+00:00"
+    after[2] = {json.dumps(retry)}
+    audit = json.loads(next(iter(after[3])))
+    for key in ("before_snapshot", "after_snapshot"):
+        audit[key]["created_at"] = "2026-10-19T04:00:00.100000+00:00"
+    after[3] = {json.dumps(audit)}
+    assert cancellation_integrity(before, after, "synthetic-appointment", True)
+
+
 @pytest.mark.parametrize(
     "corruption",
     [

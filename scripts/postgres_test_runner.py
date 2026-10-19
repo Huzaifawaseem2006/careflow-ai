@@ -38,7 +38,7 @@ def checked_url(value: str) -> tuple[str, str]:
     return value, url.password
 
 
-def redact(value: str, url: str, password: str) -> str:
+def redact(value: str, url: str, password: str, api_key: str | None = None) -> str:
     # Filter both actual password forms and any URL an error might reconstruct.
     value = re.sub(
         r"postgres(?:ql)?(?:\+psycopg)?://[^\s\"'<>]+",
@@ -46,8 +46,11 @@ def redact(value: str, url: str, password: str) -> str:
         value,
         flags=re.I,
     )
+    secrets = {url, password, quote(password, safe=""), repr(password)[1:-1]}
+    if api_key:
+        secrets.update({api_key, quote(api_key, safe=""), repr(api_key)[1:-1]})
     for secret in sorted(
-        {url, password, quote(password, safe=""), repr(password)[1:-1]},
+        secrets,
         key=len,
         reverse=True,
     ):
@@ -125,11 +128,21 @@ def run_tests(paths: list[str], url: str, password: str) -> int:
         "--careflow-timings",
         str(temporary.with_suffix(".timings.json")),
     ]
-    # No raw-output files, JUnit, shell execution or password-bearing arguments.
+    return stream_output(command, child_environment(url), url, password)
+
+
+def stream_output(
+    command: list[str],
+    environment: dict[str, str],
+    url: str,
+    password: str,
+    api_key: str | None = None,
+) -> int:
+    # No raw-output files, shell execution or secret-bearing arguments.
     with subprocess.Popen(
         command,
         cwd=ROOT,
-        env=child_environment(url),
+        env=environment,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -138,23 +151,50 @@ def run_tests(paths: list[str], url: str, password: str) -> int:
     ) as process:
         assert process.stdout is not None
         for line in process.stdout:
-            print(redact(line, url, password), end="", flush=True)
+            print(redact(line, url, password, api_key), end="", flush=True)
         return process.wait()
+
+
+def run_phase3_eval(url: str, password: str) -> int:
+    if os.environ.get("CI"):
+        raise ValueError("Paid evaluation is never an automatic CI operation")
+    environment = child_environment(url)
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if api_key:
+        environment["ANTHROPIC_API_KEY"] = api_key
+    command = [
+        sys.executable,
+        "-m",
+        "evals.phase3_gate",
+        "--mode",
+        "anthropic",
+        "--partition",
+        "held-out",
+        "--approval",
+        "evals/results/phase3-live-approval.json",
+        "--report",
+        str(ROOT / "test-results" / ("phase3-live-" + uuid4().hex + ".json")),
+    ]
+    return stream_output(command, environment, url, password, api_key)
 
 
 def main() -> int:
     try:
         url, password = checked_url(os.environ.pop("TEST_DATABASE_URL", ""))
         action = sys.argv[1]
-        if action not in {"validate", "test"}:
+        if action not in {"validate", "test", "phase3-eval"}:
             raise ValueError("Unsupported command")
-        if action == "test":
+        if action == "phase3-eval" and (len(sys.argv) != 2 or os.environ.get("CI")):
+            raise ValueError("Explicit fixed local evaluation only")
+        if action in {"test", "phase3-eval"}:
             check_private_temp(ROOT / "test-results")
         before = disposable_names(url)
         if action == "validate":
             print("Local postgres maintenance credential validated.")
             return 0
         try:
+            if action == "phase3-eval":
+                return run_phase3_eval(url, password)
             return run_tests(sys.argv[2:], url, password)
         finally:
             if disposable_names(url) - before:

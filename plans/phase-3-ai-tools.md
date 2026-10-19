@@ -1,5 +1,23 @@
 # Phase 3 — AI tool calling
 
+2026-10-20: independent Ticket 06 publication review corrected three evaluation
+integrity issues. Fresh verification passed 36 PostgreSQL tests (32 frozen cases
+and four fault controls) and 307 offline/backend/eval/CI tests, with no skips and
+clean teardown. Earlier full 283-test PostgreSQL evidence is reused for unchanged
+scope. Owner authorized scoped commit/push after local gates; exact-SHA hosted CI
+is checked afterward. Live calls remain prohibited, D01/D11 unapproved, and Phase 3
+blocked. See the latest PROGRESS entry; earlier authorization statements below are
+historical checkpoints.
+
+2026-10-19: owner approved Ticket 06 implementation and its three TDD seams.
+The [combined evaluation gate/live proposal](../docs/PHASE3_EVALUATION.md) passed
+local technical verification: 283 PostgreSQL and 297 offline/backend/eval/CI tests,
+32 combined mocked scenarios and four deliberate-failure controls, with no required
+skips. Ticket 06 is ready-for-human, not resolved. Paid calls, exact-SHA hosted
+evidence, D01/D11 wording approval, new commits/pushes and Phase 3 exit remain
+unapproved or blocked; detailed evidence is in PROGRESS. Earlier approval statements below
+are historical checkpoints, not current denial of Ticket 06 implementation.
+
 Status: owner approved Ticket 01 implementation and its four TDD seams on
 2026-10-18. Catalog/fee chat and the first real-path mocked baseline are implemented
 and verified locally: 316 broad regression passes, 67 final focused passes and 13

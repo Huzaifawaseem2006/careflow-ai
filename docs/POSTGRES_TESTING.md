@@ -32,6 +32,9 @@ powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 test
 powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 test -TestPath backend/integration_tests/test_database_integration.py
 powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 test -TestPath backend/integration_tests/test_database_integration.py::test_unmigrated_database_is_not_ready_but_process_is_alive
 
+# Only after separate paid-run approval and Phase 3 prerequisites (see below).
+powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 phase3-eval
+
 # Prompt for an updated password and atomically replace the local encrypted copy.
 powershell.exe -NoProfile -File .\scripts\postgres-tests.ps1 rotate
 
@@ -71,7 +74,9 @@ launch. Managed string copies cannot be reliably zeroed. The calling shell's
 environment is never changed. Python removes the URL from its own environment,
 checks the fixed target before connecting, and supplies it to the pytest process.
 Inherited `DATABASE_URL`, `PG*`, pytest injection variables and `ANTHROPIC_API_KEY`
-are removed from the child environment. Plugin autoload is disabled. Secret values
+are removed from ordinary test/validation child environments. Only the explicit
+`phase3-eval` operation preserves the API key for its fixed evaluation child;
+database secrets remain isolated identically. Plugin autoload is disabled. Secret values
 never enter command arguments. Use a trusted checkout; test code and other programs
 running as the same user can access subprocess memory/environment. Run without
 debuggers, tracing or memory dumps when using a real credential.
@@ -97,12 +102,19 @@ own teardown verifies each database drop. Forced process termination can prevent
 teardown; inspect only `careflow_test_*` resources manually before retrying.
 
 Only integration-test paths/functions are accepted, with fixed pytest options.
-Raw SQL, custom executables, arbitrary pytest flags and phase-gate entry points
-are not exposed. Historical phase-gate launchers are separate; this runner does
-not export credentials for them. It supplies no application configuration.
+Raw SQL, custom executables and arbitrary pytest flags are not exposed. The
+separate fixed `phase3-eval` action accepts no selectors/options and rejects CI.
+It invokes only the frozen held-out Anthropic gate with
+`evals/results/phase3-live-approval.json`, the persistent default spend ledger and
+a unique ignored report. It requires separate owner approval of the model, cases,
+maximum cost and retention disclosure, plus application configuration/account
+access; the command itself does not authorize spending. See
+[Phase 3 evaluation](PHASE3_EVALUATION.md). Ordinary test/validate operations never
+preserve the API key or make model calls.
 
 Native/connection failures return generic messages without exception details.
-Test stdout/stderr are piped through URL/password redaction before display; no
+Child stdout/stderr are piped through URL/password redaction before display
+(also API-key redaction for the explicit evaluation operation); no
 raw output/JUnit files are written by this runner. Numeric timing summaries are
 saved separately as described below. Fresh pytest temporaries live
 under ignored `test-results/postgres-<UUID>`. Do not add tests that write secrets

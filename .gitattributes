@@ -5,3 +5,4 @@ evals/context_v1/cases.jsonl text eol=lf
 evals/booking_v1/cases.jsonl text eol=lf
 evals/cancellation_v1/cases.jsonl text eol=lf
 evals/reschedule_v1/cases.jsonl text eol=lf
+evals/phase3_v1/cases.jsonl text eol=lf

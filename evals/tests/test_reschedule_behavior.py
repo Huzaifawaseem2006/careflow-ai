@@ -170,3 +170,19 @@ def test_oracle_compares_timestamp_instants_across_database_offsets() -> None:
     row.update(start_at=TARGET["start_at"], end_at=TARGET["end_at"])
     after[0] = {json.dumps(row)}
     assert reschedule_integrity(before, after, "synthetic-appointment", TARGET, True)
+
+
+def test_oracle_accepts_postgres_trimmed_creation_timestamp_in_audit() -> None:
+    before, after = evidence()
+    for state in (before, after):
+        row = json.loads(next(iter(state[0])))
+        row["created_at"] = "2026-10-19T04:00:00.1+00:00"
+        state[0] = {json.dumps(row)}
+    retry = json.loads(next(iter(after[2])))
+    retry["response_snapshot"]["created_at"] = "2026-10-19T04:00:00.100000+00:00"
+    after[2] = {json.dumps(retry)}
+    audit = json.loads(next(iter(after[3])))
+    for key in ("before_snapshot", "after_snapshot"):
+        audit[key]["created_at"] = "2026-10-19T04:00:00.100000+00:00"
+    after[3] = {json.dumps(audit)}
+    assert reschedule_integrity(before, after, "synthetic-appointment", TARGET, True)

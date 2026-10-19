@@ -54,6 +54,7 @@ def cancellation_integrity(
     ) != sorted(json.dumps(json.loads(raw), sort_keys=True) for raw in after[0]):
         return False
     public = {key: value for key, value in source.items() if key != "version"}
+    public["created_at"] = datetime.fromisoformat(str(public["created_at"])).isoformat()
     for key in ("start_at", "end_at"):
         public[key] = (
             datetime.fromisoformat(str(public[key])).astimezone(ZONE).isoformat()

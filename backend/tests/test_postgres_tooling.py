@@ -124,6 +124,45 @@ def test_real_test_subprocess_output_is_redacted(
     assert "redacted" in output.out
 
 
+def test_explicit_phase3_job_is_fixed_isolated_and_redacts_both_credentials(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    original = subprocess.Popen
+    key = "synthetic-anthropic-sentinel"
+    monkeypatch.setenv("ANTHROPIC_API_KEY", key)
+    monkeypatch.delenv("CI", raising=False)
+
+    def start(command: list[str], **kwargs: object) -> subprocess.Popen[str]:
+        assert command[:7] == [
+            sys.executable,
+            "-m",
+            "evals.phase3_gate",
+            "--mode",
+            "anthropic",
+            "--partition",
+            "held-out",
+        ]
+        assert command[7:9] == ["--approval", "evals/results/phase3-live-approval.json"]
+        assert command[9] == "--report" and len(command) == 11
+        assert key not in " ".join(command) and URL not in " ".join(command)
+        return original(  # type: ignore[call-overload,no-any-return]
+            [
+                sys.executable,
+                "-c",
+                "import os,sys; print(os.environ['TEST_DATABASE_URL']); "
+                "print(os.environ['ANTHROPIC_API_KEY']); sys.exit(2)",
+            ],
+            **kwargs,
+        )
+
+    monkeypatch.setattr(subprocess, "Popen", start)
+    assert runner.run_phase3_eval(URL, "synthetic@password") == 2
+    assert "ANTHROPIC_API_KEY" not in runner.child_environment(URL)
+    output = capsys.readouterr()
+    assert "sentinel" not in output.out + output.err
+    assert "synthetic@password" not in output.out + output.err
+
+
 def test_temp_preflight_fails_before_database_access(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -146,6 +185,36 @@ def test_temp_preflight_fails_before_database_access(
     assert runner.main() == 1
     assert calls == []
     assert "normal-host" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("extra,ci", [(["--mode", "mocked"], False), ([], True)])
+def test_phase3_runner_rejects_overrides_and_ci_before_database_access(
+    monkeypatch: pytest.MonkeyPatch, extra: list[str], ci: bool
+) -> None:
+    monkeypatch.setenv("TEST_DATABASE_URL", URL)
+    monkeypatch.setattr(sys, "argv", ["runner", "phase3-eval", *extra])
+    if ci:
+        monkeypatch.setenv("CI", "true")
+    else:
+        monkeypatch.delenv("CI", raising=False)
+    calls: list[str] = []
+    monkeypatch.setattr(runner, "disposable_names", lambda url: calls.append(url))
+    assert runner.main() == 1
+    assert calls == []
+
+
+def test_phase3_runner_checks_cleanup_on_blocked_evaluation(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("TEST_DATABASE_URL", URL)
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.setattr(sys, "argv", ["runner", "phase3-eval"])
+    monkeypatch.setattr(runner, "check_private_temp", lambda path: None)
+    catalogs = iter([set(), {"careflow_test_synthetic"}])
+    monkeypatch.setattr(runner, "disposable_names", lambda url: next(catalogs))
+    monkeypatch.setattr(runner, "run_phase3_eval", lambda *args: 2)
+    assert runner.main() == 1
+    assert "cleanup incomplete" in capsys.readouterr().out
 
 
 def test_runner_checks_cleanup_on_failed_tests(
@@ -187,7 +256,11 @@ def test_windows_lifecycle_and_process_environment(shell: str) -> None:
             "assert all(u not in arg for arg in sys.argv)\n"
             "assert 'DATABASE_URL' not in os.environ\n"
             "assert 'PGPASSWORD' not in os.environ\n"
-            "assert 'ANTHROPIC_API_KEY' not in os.environ\n"
+            "if sys.argv[1]=='phase3-eval':\n"
+            "    assert os.environ['ANTHROPIC_API_KEY']=='parent-sentinel'\n"
+            "    assert len(sys.argv)==2\n"
+            "else:\n"
+            "    assert 'ANTHROPIC_API_KEY' not in os.environ\n"
             "print('Synthetic helper stdout received.')\n"
             "sys.stderr.write('synthetic@password')\n"
             "sys.exit(1 if 'wrong' in unquote(u) else 0)\n"
@@ -223,6 +296,11 @@ if ((Invoke-PostgresTests test @('backend/integration_tests')) -ne 0) {
     throw 'Launch failed'
 }
 if ($script:promptCount -ne 1) { throw 'Reuse prompted' }
+if ((Invoke-PostgresTests phase3-eval @()) -ne 0) { throw 'Evaluation launch failed' }
+ExpectFailure { Invoke-PostgresTests phase3-eval @('--mode') }
+$env:CI = 'true'
+ExpectFailure { Invoke-PostgresTests phase3-eval @() }
+Remove-Item Env:CI
 ExpectFailure { Invoke-PostgresTests setup @() }
 ExpectFailure { Invoke-PostgresTests test @('--showlocals') }
 $original = [IO.File]::ReadAllText($file)

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('setup', 'validate', 'test', 'rotate', 'delete')]
+    [ValidateSet('setup', 'validate', 'test', 'rotate', 'delete', 'phase3-eval')]
     [string]$Command = 'validate',
     [string[]]$TestPath = @('backend/integration_tests')
 )
@@ -68,6 +68,9 @@ function Assert-PrivateAcl([string]$Path) {
 }
 
 function Invoke-CredentialProcess($Credential, [string]$Action, [string[]]$Paths) {
+    if ($Action -eq 'phase3-eval' -and ($Paths.Count -ne 0 -or $env:CI)) {
+        throw 'Phase 3 evaluation accepts no selectors and never runs in CI.'
+    }
     if ($Credential -isnot [Management.Automation.PSCredential] -or $Credential.UserName -cne 'postgres' -or $Credential.Password.Length -eq 0) {
         throw 'Invalid stored credential; rotate or set up again.'
     }
@@ -89,7 +92,8 @@ function Invoke-CredentialProcess($Credential, [string]$Action, [string[]]$Paths
     # All arguments are fixed or constrained above; secrets never enter arguments.
     $start.Arguments = '-I scripts/postgres_test_runner.py ' + $Action + ' ' + ($Paths -join ' ')
     foreach ($key in @($start.EnvironmentVariables.Keys)) {
-        if ($key -like 'PG*' -or $key -in @('DATABASE_URL', 'TEST_DATABASE_URL', 'PYTEST_ADDOPTS', 'PYTEST_PLUGINS', 'ANTHROPIC_API_KEY')) {
+        if ($key -like 'PG*' -or $key -in @('DATABASE_URL', 'TEST_DATABASE_URL', 'PYTEST_ADDOPTS', 'PYTEST_PLUGINS') -or
+            ($key -eq 'ANTHROPIC_API_KEY' -and $Action -ne 'phase3-eval')) {
             $start.EnvironmentVariables.Remove($key)
         }
     }
@@ -183,6 +187,10 @@ function Invoke-PostgresTests([string]$Action, [string[]]$Paths) {
 
 if ($MyInvocation.InvocationName -ne '.') {
     try {
+        if ($Command -eq 'phase3-eval') {
+            if ($PSBoundParameters.ContainsKey('TestPath')) { throw 'Evaluation accepts no test selectors.' }
+            exit (Invoke-PostgresTests $Command @())
+        }
         exit (Invoke-PostgresTests $Command $TestPath)
     } catch {
         # Never render exception objects: native/DPAPI/process errors may contain secrets.

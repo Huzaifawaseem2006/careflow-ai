@@ -1,0 +1,8 @@
+{
+  "dataset_version": "phase3-gate-v1",
+  "cases_sha256": "d1719bea7939f7a68341c1ab44d0ed098cc987ffa6d5a6ccd67e4842bd5a64ff",
+  "fixture_version": "phase3-disposable-v1",
+  "frozen_on": "2026-10-19",
+  "repeat_policy": "One attempt per case, no automatic reruns or tuning on held-out cases",
+  "provenance": "Ticket 06 acceptance criteria; frozen before implementation/evaluation; prompt unchanged"
+}

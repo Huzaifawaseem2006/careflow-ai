@@ -1,5 +1,10 @@
 # Evaluation and continuous verification strategy
 
+Ticket 06 adds the [combined Phase 3 gate and proposed live approval plan](PHASE3_EVALUATION.md).
+The frozen 32-case real-path matrix, paid controls and held-out model denominator
+supersede future-harness descriptions below. Actual evidence remains in PROGRESS;
+scripted results never establish live model quality.
+
 Status: Phase 1's offline inventory remains historical. Phase 3 Ticket 01 adds a separate versioned mocked behavioral catalog baseline on the real orchestrator and PostgreSQL service path. No live model quality or phase-exit result is established. PRD Section 12 defines provisional targets; this document defines how to measure them.
 
 ## Phase 3 Ticket 01 mocked behavior
@@ -46,7 +51,7 @@ Case groups: FAQ grounded answer and citation; absent/expired/conflicting source
 
 ## Harness and evidence
 
-`evals/run_local.py` should invoke the **same orchestrator and service adapters** used by `/chat`, with deterministic fixtures and a mocked external model boundary. It tests actual routing, authorization and state effects, but cannot measure model behavior. A separately labeled live-provider mode calls the configured OpenAI model through the same path. It needs credentials, network and budget; absence is a blocked live run, never a pass. `evals/graders.py` uses deterministic assertions for tool legality, auth, state, idempotency, source IDs and critical safety responses. Any model judge is supplementary and must be calibrated against human-reviewed examples.
+`evals/run_local.py` should invoke the **same orchestrator and service adapters** used by `/chat`, with deterministic fixtures and a mocked external model boundary. It tests actual routing, authorization and state effects, but cannot measure model behavior. A separately labeled live-provider mode calls the configured Anthropic model through the same path. It needs credentials, network and budget; absence is a blocked live run, never a pass. `evals/graders.py` uses deterministic assertions for tool legality, auth, state, idempotency, source IDs and critical safety responses. Any model judge is supplementary and must be calibrated against human-reviewed examples.
 
 Report JSON per run: UTC time, Git revision/dirty flag, model ID, API mode, prompt version, tool schema version, dataset version and partition, corpus/index version, fixture version, case counts, pass rates by group/severity, retrieval recall@k, citation validity, grounded FAQ correctness, tool-selection accuracy, refusal/escalation counts, latency distribution, token counts, estimated/actual cost methodology, failures and skipped/blocked cases. Preserve only safe synthetic traces. Never combine mocked/offline and live metrics in one unlabeled rate.
 
