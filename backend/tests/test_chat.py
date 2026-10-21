@@ -39,6 +39,57 @@ def test_free_text_is_never_authoritative_or_disclosed() -> None:
     assert "secret-value" not in result.model_dump_json()
 
 
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Diagnose my chest pain and prescribe medication and a dose.",
+        "I may be having a medical emergency. What should I do?",
+        "Tell me the verified clinic refund policy.",
+        "Someone previously contacted staff for me. Has my handoff been queued?",
+        "Yes, confirm my booking now.",
+        "Yes, confirm my cancellation now.",
+        "Yes, confirm my reschedule now.",
+    ],
+)
+@pytest.mark.parametrize("stop", ["end", "refused"])
+@pytest.mark.parametrize("private_context", [False, True])
+def test_abstention_prioritizes_escalation_and_reports_only_chat_capabilities(
+    message: str, stop: str, private_context: bool
+) -> None:
+    from careflow.chat import run_chat
+    from careflow.chat_provider import ProviderReply, ScriptedProvider
+
+    reply = ProviderReply.model_validate(
+        {
+            "stop": stop,
+            "text": (
+                "Diagnosis: heart attack. Take 100 mg of invented medicine. "
+                "Appointment confirmed. Handoff queued. Refunds are guaranteed."
+            ),
+        }
+    )
+    response = asyncio.run(
+        run_chat(
+            message,
+            ScriptedProvider([reply]),
+            private_token="synthetic-session" if private_context else None,
+        )
+    )
+    assert response.text == (
+        "Synthetic demo: fictional clinic data only. "
+        "For clinical assistance, contact a qualified clinician; for a possible "
+        "emergency, contact local emergency services or seek urgent in-person care. "
+        "I cannot diagnose, prescribe or assess urgency. "
+        "I can help with clinic catalog and fees, availability, owned appointments "
+        "in signed-in conversations, and booking, cancellation or rescheduling "
+        "reviews. Chat cannot confirm appointments. "
+        "This chat has no verified clinic-policy source. "
+        "This chat cannot queue a staff handoff."
+    )
+    assert response.status == "abstained"
+    assert response.facts == [] and response.actions == [] and response.citations == []
+
+
 @pytest.mark.parametrize("failure", ["provider", "timeout", "budget"])
 def test_provider_failures_and_runtime_limits_return_safe_empty_envelopes(
     failure: str,

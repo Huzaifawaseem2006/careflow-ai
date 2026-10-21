@@ -1,6 +1,11 @@
 # Safety and threat model
 
-Status: proposed controls, unimplemented and unvalidated. This is an operational assistant using synthetic data. No clinical or regulatory certification is claimed.
+Status: threat-model controls are implemented and technically verified only where
+the ticket evidence in PROGRESS records them; later-phase controls remain planned.
+D01 wording is owner-approved, implemented and technically tested; D11 human
+clinical wording sign-off is pending.
+This is an operational assistant using synthetic data. No clinical or regulatory
+certification is claimed.
 
 ## Trust boundaries and assets
 
@@ -27,7 +32,57 @@ Knowledge preparation text may include sensitive health context. Publish only re
 
 ## Privacy and retention
 
+See the current [conversation lifecycle](CONVERSATIONS.md) for approved and
+implemented D10 mechanics; the original planning paragraph below is historical.
+
 Development fixtures, model prompts, embeddings, logs, evals and demos use synthetic people and one fictional Karachi clinic. Disclose conversation persistence before opt-in. The owner proposed 30-day retention for synthetic demo conversations; deletion timing, handoff and audit exceptions still need a concrete policy before storing chat content. Staff views and audit events should redact unnecessary content. Limit provider payload to the minimum synthetic context. Prevent raw request bodies, credentials and tokens from entering correlation traces. Deletion needs to cover messages and derived embeddings where applicable, with an explicit audit exception policy.
+
+## Phase 3 wording review — 2026-10-20
+
+**D01: owner-approved, implemented and technically tested. D11: pending.** The owner
+approved preserving the existing number-free escalation sentence and improving the
+full deterministic fallback, with the exact capability-based closing sentences below.
+No external clinical reviewer has been nominated or completed a review. Technical
+tests and this engineering review supply no human clinical approval.
+
+The current complete rendered fallback is `DISCLOSURE + ABSTENTION` in
+[`chat.py`](../backend/careflow/chat.py). The old response put operational
+instructions before emergency guidance and repeated selection prompts. The
+owner-approved improvement is now implemented as:
+
+> Synthetic demo: fictional clinic data only. For clinical assistance, contact a qualified clinician; for a possible emergency, contact local emergency services or seek urgent in-person care. I cannot diagnose, prescribe or assess urgency. I can help with clinic catalog and fees, availability, owned appointments in signed-in conversations, and booking, cancellation or rescheduling reviews. Chat cannot confirm appointments. This chat has no verified clinic-policy source. This chat cannot queue a staff handoff.
+
+The implementation retains the accepted escalation sentence unchanged, moves it
+immediately after disclosure, removes repeated selection prompts and removes
+internal secret/instruction language from the fallback. Current chat has no policy
+retrieval or handoff service/tool; the approved closing sentences state those
+capabilities, without asserting the status of an earlier/external handoff. The
+change adds no routing, clinical capability, telephone number, tool, prompt,
+grader or threshold change. The shared fallback also serves nonclinical abstention;
+this is not a new emergency classifier or a guarantee that this text appears on
+every clinical input. Error responses remain separate; historical turn replay
+retains its immutable original wording. See PROGRESS for technical evidence.
+
+Before D11 can close, retain the following actual evidence:
+
+1. Owner nomination of an appropriate named reviewer, with their stated role and
+   relevant qualifications/experience; none is supplied or inferred here.
+2. The full rendered response and code revision/text version they reviewed,
+   covering disclosure, escalation, surrounding operational prompts, refusal of
+   diagnosis/prescribing/urgency assessment and honest handoff limitations.
+3. Review of the clinical-request and possible-emergency examples for the English
+   Karachi synthetic demo: understandable, brief guidance, no severity judgment,
+   no delaying questions/booking instructions and no invented contact details.
+4. Dated reviewer findings, required amendments and explicit approval of the final
+   wording, plus owner acceptance. Any changes require affected technical checks
+   and review of the resulting full response, without weakening frozen evals.
+
+This closes only the defined wording review when completed. It cannot establish
+project-wide clinical validation, regulatory compliance or real-patient readiness.
+Existing contracts treat D01/D11 as safety/release gates separate from internal
+synthetic technical evaluation. A separately authorized live run may gather
+technical evidence while D11 is pending, but cannot close Phase 3 or authorize
+demo/release. No paid run is currently authorized.
 
 ## Release blocks and residual risk
 

@@ -1,5 +1,145 @@
 # Progress and verification ledger
 
+## 2026-10-21 — D01 scoped publication review
+
+Owner authorized final review of all seven files against `2936fdb` and, if passing,
+one commit (`fix: improve deterministic clinical fallback wording`) and push to
+`origin/master`. Review distinguishes the five earlier preparation-document edits
+from the new fallback literal/tests and their documentation updates. Complete
+rendered wording and appointment confirmation boundaries were checked; frozen
+evaluation inputs, graders, spending policy and live authorization requirements
+remain unchanged. No secrets or unrelated/generated files are included. Earlier
+successful test evidence below is retained without suite reruns. Historical
+preparation notes remain dated snapshots; current status is D01 technically tested,
+D11 pending and Phase 3 blocked. Publication/remote/CI outcomes are reported after
+the authorized commit and push; this entry does not claim those actions succeeded.
+No paid run is authorized.
+
+## 2026-10-20 — D01 deterministic fallback implementation
+
+Owner approved both proposed TDD seams, review against HEAD `2936fdb`, and exact
+capability-based closing sentences. Existing five preparation-document edits were
+present at task start and preserved. New implementation changes only `ABSTENTION`
+in `backend/careflow/chat.py`, plus focused tests and current documentation.
+The exact accepted escalation sentence now follows synthetic disclosure; selection
+prompts/internal-security terminology are removed. Current chat has no policy
+retrieval or handoff service, so the approved capability statements avoid universal
+claims about policy evidence or an earlier/external handoff. No routing/classifier,
+prompt/tool/schema, authorization, confirmation, error or history/replay change.
+Owner-approved wording is implemented and technically tested; D11 still has no
+nominated reviewer or clinical sign-off. Phase 3 remains blocked.
+
+Fresh verification, all no-cost, with artifacts under ignored `test-results/`:
+
+- TDD red: **28 failed** on old wording (`d01-red.xml`), one parametrized behavioral
+  specification at `run_chat` for clinical/emergency/policy/handoff and three chat
+  confirmation requests, end/refusal, public/private tool contexts. Only the
+  external provider is scripted; private context does not claim authentication.
+- Green: **52 passed**, 2.00s (`d01-green.xml`). Complete expected response is an
+  independent approved literal, not imported from the implementation; fabricated
+  medical/policy/handoff/confirmation provider prose is discarded. Existing errors,
+  limits and forbidden-tool tests pass.
+- Final focused offline chat/SDK/evaluation gate/budget regression: **111 passed**,
+  35.10s, zero failures/skips (`d01-final-offline.xml`). Includes the 52 chat tests;
+  counts overlap and are not added. Actual SDK uses mocked HTTP only.
+- Fixed credential runner, normal host, `test -TestPath backend/integration_tests/test_phase3_gate_integration.py`:
+  **36 passed**, 329.68s, no skips, no new disposable DBs remaining
+  (`d01-postgres-mocked.txt`; numeric timing artifact from the runner). Real HTTPS
+  handlers/services/PostgreSQL, only provider scripted; includes all 32 frozen
+  cases and four grader controls. Covers clinical/injection/policy/ownership,
+  separate booking/cancel/reschedule confirmation, stale/cutoff/replay/context,
+  provider failure after commit and detection of unconfirmed mutations.
+- Regenerated current-source aggregate `d01-mocked-all.json`: **32 passed**, zero
+  failed/blocked/pending/skipped, live quality null. All 36 earlier fixed-name
+  reports preserved first in `d01-before-implementation/` with checksums. Unchanged
+  case outcomes versus that baseline; frozen dataset/graders/thresholds/spending
+  policy and prompt/tool versions unchanged. Source fingerprint changes as expected.
+- Full repository Ruff format/check, strict mypy (103 source files), pip check:
+  passed. No new full PostgreSQL/offline/CI regression or hosted run is claimed;
+  scope is isolated wording, not phase closure. Prior broad evidence remains history.
+
+Commands: `.venv/Scripts/python -B -m pytest backend/tests/test_chat.py` (red used
+`-k abstention_prioritizes`); final adds `backend/tests/test_anthropic_provider.py
+evals/tests/test_phase3_gate.py evals/tests/test_live_budget.py`; fixed options
+`-q --tb=short -p no:cacheprovider`, unique basetemp/JUnit per attempt.
+Mocked DB: `powershell.exe -NoProfile -File scripts/postgres-tests.ps1 test -TestPath
+backend/integration_tests/test_phase3_gate_integration.py`. Aggregate: Python
+`-m evals.phase3_gate --combine-mocked --report test-results/d01-mocked-all.json`.
+Format/check/mypy cover `backend scripts ci_tests evals`; dependency check is pip.
+
+Independent read-only Standards review against `2936fdb`: **zero actionable
+findings**. Independent Spec review: **zero actionable findings**. Both distinguish
+the five earlier preparation-document edits from this implementation. Final scope
+is seven files: one production literal, its behavioral tests and those five docs.
+Complete diff, untracked/sensitive/generated artifacts and whitespace reviewed;
+17 local links/anchors pass. No untracked source/generated artifact is included.
+`d01-verification.json` records baseline deltas (none), current source fingerprint
+and unchanged protected evaluation/provider inputs. Review results are retained in
+`d01-review-final.json`; current code is ready for owner Git review only.
+No paid calls, live evaluation, credential/ledger changes, staging, commit or push.
+Next work is separately authorized live readiness/evaluation, with current key,
+access, retention, pricing-date and budget gates; D11 remains an independent human
+review requirement for closure/release. No next-phase work is authorized.
+
+## 2026-10-20 — Phase 3 wording and no-cost live-readiness preparation
+
+Owner authorized investigation, no-cost readiness verification and necessary
+documentation only. D01's existing number-free sentence is **owner-approved wording
+for human review**; no final clinical sign-off. No D11 reviewer is nominated and
+no review evidence exists. No paid calls, provider probes, live evaluation,
+application changes, frozen-case/grader/threshold/spending changes, commit or push.
+Started at clean `2936fdb152b447f08f3fad82d4a922f3c0283090`; retained publication
+record confirms exact-SHA Actions passed, superseding pre-publication pending notes.
+
+Reviewed the complete fallback and documented an exact shorter/reordered proposal
+in [SAFETY](SAFETY.md#phase-3-wording-review--2026-10-20), without implementing it.
+It preserves the accepted escalation sentence, moves it immediately after the
+synthetic disclosure and removes repeated selection/security-instruction text.
+Documented required reviewer identity/role, full response/version, dated scenario
+review/findings/final approval and owner acceptance. Technical tests are not human
+clinical review or clinical validation. Existing live-entry prerequisites and
+separate D01/D11 release gates permit internal synthetic technical evaluation
+before D11 under separate paid approval; D11 still blocks Phase 3 closure/release.
+This task does not authorize another ticket/phase or actual live execution.
+
+Fresh no-cost verification (evidence under ignored `test-results/`):
+
+- `powershell.exe -NoProfile -File scripts/postgres-tests.ps1 validate`: exit 0,
+  saved maintenance credential validated (`phase3-readiness-20261020-validate.txt`).
+- Same runner `test -TestPath backend/integration_tests/test_database_integration.py::test_clean_and_repeated_upgrade_preserve_schema_and_vector_functionality`:
+  restricted private-temp preflight failed before DB work; required normal-host
+  execution passed **1 test in 7.45s**, no new disposable DBs remaining. Failed and
+  passing console logs retained as `phase3-readiness-20261020-postgres.txt` and
+  `phase3-readiness-20261020-postgres-host.txt`; normal runner emitted numeric stage
+  timings. This is not a fresh full PostgreSQL suite or role-permission test.
+- Normal-host `.venv/Scripts/python -B -m pytest backend/tests/test_anthropic_provider.py evals/tests/test_phase3_gate.py evals/tests/test_live_budget.py -q --tb=short -p no:cacheprovider --basetemp test-results/phase3-readiness-20261020-offline-temp --junitxml test-results/phase3-readiness-20261020-offline.xml`:
+  **59 passed in 9.03s**, no failures/skips; actual SDK uses mocked HTTP. Covers
+  request protocol, reporting/config/blocked exits and durable budget/error guards.
+- `.venv/Scripts/python -B -m pip check`: no broken requirements.
+- Safe readiness inventory (`phase3-readiness-20261020.json`): frozen checksum and
+  exact P3-001–023 held-out selection match; Python 3.13.13/SDK 1.15.0/httpx2 2.13.1;
+  effective CHAT limits equal defaults, no limit overrides. API key absent,
+  CHAT_ENABLED not true, CI unset. Parent DB URLs unset; fixed runner delivers
+  its saved credential to child only. No secret values recorded.
+- Read-only SQLite integrity check OK: zero runs/calls/charges/reservations and
+  USD 5 remaining. No ledger initialization/reset/write. Approval file and owner
+  retention acknowledgment absent. Actual account access, credits, provider
+  reachability and account retention terms remain **unverified**; no API probe.
+- Official model/pricing/strict/sequential docs rechecked 2026-10-19 UTC / October
+  20 Karachi. Published model/prices/settings match. Pinned pricing date matches
+  current UTC at check; a later UTC date requires scoped refresh/verification.
+
+Only DECISIONS, SAFETY, CHAT, PHASE3_EVALUATION and this handoff changed. Full diff
+review, 16 local link/anchor checks and whitespace checks passed; frozen checksum
+unchanged (`phase3-readiness-20261020-docs.json`). No configured documentation-specific
+checker exists. Prior full implementation regressions are retained evidence, not
+rerun or new live-quality observations. Next owner decisions: approve/revise exact
+fallback before implementation; separately approve model/cases/USD 4.50 maximum/
+120-call run and retention disclosure before dispatch, then configure key/enablement
+and verify account prerequisites. Arrange D11 review independently. A later-date
+pricing code/schema refresh needs authorization. **Phase 3 remains blocked**;
+documentation is ready for owner review, with no Git action authorized.
+
 ## 2026-10-20 — Ticket 06 independent review and authorized publication
 
 Owner explicitly authorized independent review, scoped fixes, local verification,

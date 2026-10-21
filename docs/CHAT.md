@@ -14,8 +14,11 @@ The public single-turn endpoint performs catalog and persisted availability look
 with no durable conversation content, private patient access, appointment writes,
 RAG or handoff. Booking/cancellation/rescheduling reviews require authenticated
 conversations.
-Only synthetic input belongs in this demo. Live account/model access and clinical
-wording approval remain unverified; deterministic tests are not model quality.
+Only synthetic input belongs in this demo. Live account/model access is unverified.
+On 2026-10-20 the owner approved the exact number-free escalation sentence and
+contract-compatible fallback improvement. The [complete current fallback](SAFETY.md#phase-3-wording-review--2026-10-20)
+is implemented and technically tested; D11 reviewer/human clinical sign-off remains
+pending. Deterministic tests are not model quality or clinical sign-off.
 
 ## HTTP and authoritative response
 
@@ -56,8 +59,13 @@ clarification/abstention/error wording. Provider prose is discarded completely.
 Empty pages are described as empty pages, not proof that a resource cannot exist.
 Multiple name matches require selection. Listing records does not establish
 availability, policy coverage or a doctor-service association. No verified policy
-source means abstention. Clinical wording is provisional pending D01/D11 and a
-named reviewer; no invented phone number or accepted handoff is claimed.
+source means abstention. D01 owner-approved wording puts the exact escalation
+sentence immediately after synthetic disclosure, omits selection prompts and
+states that this chat has no verified clinic-policy source and cannot queue a
+staff handoff. It makes no claim about an earlier/external handoff. Human clinical
+review remains pending under D11. No policy retrieval/handoff service or new
+clinical routing is added; confirmation, error and historical replay contracts
+are unchanged.
 
 ## Tool schema version 1
 

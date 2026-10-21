@@ -1,5 +1,49 @@
 # Decisions and PRD review
 
+## D01 fallback implementation approval — 2026-10-20
+
+Owner approved both TDD seams (public `run_chat` with only the provider scripted;
+existing HTTPS conversation/appointment mocked evaluations on disposable PostgreSQL)
+and review against `2936fdb`, distinguishing earlier preparation-document edits.
+Owner approved the exact capability-based closing sentences: "This chat has no
+verified clinic-policy source. This chat cannot queue a staff handoff."
+
+Implement only the shared deterministic abstention wording: preserve the accepted
+number-free escalation sentence exactly, immediately after disclosure; remove
+selection prompts and internal-security terminology. Policy retrieval and handoff
+are absent from current routes/tools, so state current chat capabilities rather
+than make claims about an earlier/external handoff or source. No conditional state
+lookup, routing, clinical capability, tool or prompt change is needed. Keep error,
+confirmation, authorization and immutable history/replay behavior unchanged.
+D01 is owner-approved and technically verified as recorded in PROGRESS; D11 has
+no nominated reviewer or clinical sign-off and still blocks closure/release.
+
+## Phase 3 approval preparation — 2026-10-20
+
+Historical preparation snapshot; the implementation approval above supersedes its
+pending fallback proposal.
+
+Owner accepted the existing number-free sentence as **owner-approved wording for
+human review**, not final clinical sign-off: "For clinical assistance, contact a
+qualified clinician; for a possible emergency, contact local emergency services or
+seek urgent in-person care." Keep deterministic server rendering, no telephone
+numbers and no diagnosis, prescribing, urgency assessment or new clinical capability.
+Any fallback changes must be proposed exactly before implementation.
+
+D11 remains pending: no external reviewer is nominated and no clinical review or
+approval evidence exists. The complete current fallback buries escalation after
+operational instructions and repeats booking prompts. The exact shortening/reorder
+proposal and required human-review evidence are in [SAFETY](SAFETY.md#phase-3-wording-review--2026-10-20);
+it has not been approved or implemented.
+
+The existing evaluation contract lists paid approval/configuration/access/retention
+as live-entry prerequisites and D01/D11 as separate safety/release approvals.
+Internal synthetic technical evaluation can therefore precede D11 sign-off under
+separate paid-run authorization; this interpretation does not close the human
+safety gate, Phase 3 exit or demo/release. Ordinary approved technical work can
+continue, but this task authorizes no new feature/ticket or paid execution.
+See [current readiness](PHASE3_EVALUATION.md#no-cost-readiness-check--2026-10-20).
+
 ## Ticket 06 publication review corrections — 2026-10-19
 
 Independent review found three evaluation-integrity gaps. Bind combined evidence
@@ -123,7 +167,7 @@ database and CI subprocess suites retain their stricter idle-checkout rules.
 
 | ID | Decision | Recommendation / consequence | Needed before |
 | --- | --- | --- | --- |
-| D01 | Emergency locale language | Clinic location is Karachi/`Asia/Karachi`/PKR. Approve exact local escalation wording and any emergency contact reference through D11. | Safety wording |
+| D01 | Emergency locale language | Owner-approved fallback implemented and technically tested on 2026-10-20: exact number-free escalation immediately after disclosure; capability-based policy/handoff statements. Human clinical review remains pending through D11. | Owner/technical wording resolved; human sign-off/release pending |
 | D02 | Patient identity lifecycle | Approved 2026-10-16: pre-provisioned synthetic patients, local password hashes, operator-only account creation/password reset, no public registration or email recovery. | Resolved for Ticket 05 demo |
 | D03 | Slot horizon and DST handling | Approved 2026-10-17 for Phase 2 Ticket 02; see the scheduling decision below. The 24-hour appointment-change cutoff remains separate. | Resolved for Ticket 02 |
 | D04 | Proposal expiry / retry retention | Actor/action-bound proposals and fee revalidation approved. Choose expiry, stale-state behavior and idempotency retention without weakening invariants. | Phase 2 |
@@ -133,7 +177,7 @@ database and CI subprocess suites retain their stricter idle-checkout rules.
 | D08 | Hosted demo | Native local setup for MVP; Docker/Compose deferred by owner on 2026-10-15. Select host, TLS and protected demo accounts before publishing. | Phase 7 |
 | D09 | Staff scope | Arabic and Urdu post-MVP. Minimal appointments/handoff queue for P0 proposed; choose detailed staff CRUD scope. No reminders/MCP for first demo. | Frontend scope |
 | D10 | Retention and deletion | Owner reaffirmed disclosed PostgreSQL history, bounded context, serialized turns and 30-day direction on 2026-10-18. Guest ownership/transfer, deletion trigger/timing and exception mechanics were not specified in the proposal; review before storing content. No new handoff/audit exception. | Phase 3 Ticket 02 persistence |
-| D11 | Clinical wording review | Owner names appropriate reviewer and approves locale-specific escalation text before demo; no clinical validation claim. | Safety eval/release |
+| D11 | Clinical wording review | Pending: no reviewer nominated or review completed. Owner must name an appropriate reviewer, retain complete-fallback review evidence and approve final text before demo; no clinical validation claim. Technical evaluation is separate. | Human safety sign-off / Phase 3 closure / demo release |
 | D12 | Schema additions and API changes | Proposals/idempotency tables, fee snapshot, session storage as applicable; reschedule tools/proposal endpoints described in contracts. | Schema/API implementation |
 
 Tickets 01–02 were individually approved and are complete. Remaining decisions block only dependent tasks; resolve only the decisions needed for the approved ticket.

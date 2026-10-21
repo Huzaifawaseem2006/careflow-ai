@@ -52,16 +52,14 @@ from careflow.chat_tools import (
 
 DISCLOSURE = "Synthetic demo: fictional clinic data only. "
 ABSTENTION = (
-    "I can help with catalog and fee lookup, and owned appointment lookup in "
-    "signed-in conversations, persisted availability, booking, cancellation "
-    "and rescheduling "
-    "reviews. "
-    "Please specify an unambiguous doctor/date/time or select a real slot. "
-    "Chat cannot confirm appointments. I have no verified policy evidence and cannot "
-    "reveal private instructions or secrets, diagnose, prescribe or assess urgency. "
     "For clinical assistance, contact a qualified clinician; for a possible emergency, "
     "contact local emergency services or seek urgent in-person care. "
-    "No staff handoff has been queued. Please specify a doctor, specialty or service."
+    "I cannot diagnose, prescribe or assess urgency. "
+    "I can help with clinic catalog and fees, availability, owned appointments "
+    "in signed-in conversations, and booking, cancellation or rescheduling reviews. "
+    "Chat cannot confirm appointments. "
+    "This chat has no verified clinic-policy source. "
+    "This chat cannot queue a staff handoff."
 )
 
 

@@ -1,5 +1,99 @@
 # Phase 3 evaluation gate
 
+## D01 wording implementation — 2026-10-20
+
+Owner approved the two TDD seams and review against `2936fdb`, preserving earlier
+preparation-document edits as a separate part of the uncommitted diff. The shared
+fallback now implements the owner-approved wording in [SAFETY](SAFETY.md#phase-3-wording-review--2026-10-20):
+exact number-free escalation immediately after disclosure, no selection prompts,
+and capability-based policy/handoff limitations. D01 owner/technical wording is
+resolved; D11 human review remains pending. No new clinical/routing capability,
+provider prompt, tool, confirmation, authorization or replay behavior changed.
+
+Focused TDD and real HTTPS/disposable-PostgreSQL mocked evidence are recorded in
+PROGRESS. Current aggregate: `test-results/d01-mocked-all.json`; prior fixed-name
+individual/control reports were preserved with checksums in
+`test-results/d01-before-implementation/` before regeneration. Compare unchanged
+case outcomes (32 passing) separately from source hashes, which changed with the
+server wording. The frozen cases/graders/thresholds/spending policy and prompt/tool
+versions are unchanged; scripted model quality remains null. Earlier readiness
+checks below are dated observations, not a fresh live-entry certification.
+No full PostgreSQL regression or live evaluation is claimed for this isolated
+wording task. No paid run is authorized; the owner separately authorized one scoped
+D01 commit/push on 2026-10-21. D11/live quality and other
+applicable gates still block Phase 3 exit. Next step is separate live-readiness/
+paid-run approval; no fallback product decision remains outstanding.
+
+## No-cost readiness check — 2026-10-20
+
+Historical readiness snapshot; the D01 implementation above supersedes its pending
+wording proposal. Other live prerequisites require fresh verification before entry.
+
+Owner requested preparation only: **no paid calls or live evaluation authorized
+or executed**. No provider probes were performed. D01's number-free escalation
+sentence is owner-approved wording for human review, not final sign-off. D11 has
+no nominated reviewer or review evidence. See [required review and exact fallback
+proposal](SAFETY.md#phase-3-wording-review--2026-10-20); application text is unchanged.
+
+The prerequisites under "Proposed first live run" below and the separate release
+approvals under "Remaining gates" do not require D11 before an internal synthetic
+technical live evaluation. It may proceed only after separate paid authorization
+and all live prerequisites pass. D11, final wording approval, complete live
+evidence and all other exit requirements still block Phase 3 closure/demo release.
+No new feature or next-phase implementation is authorized by this interpretation.
+
+Checked clean implementation HEAD `2936fdb152b447f08f3fad82d4a922f3c0283090` before
+these documentation edits. Retained publication evidence confirms exact-SHA
+Actions success; older pending-hosted statements below are pre-publication history.
+Fresh ignored evidence: `test-results/phase3-readiness-20261020.json`,
+`phase3-readiness-20261020-validate.txt`, `phase3-readiness-20261020-postgres-host.txt`
+and `phase3-readiness-20261020-offline.xml` (all under `test-results/`).
+
+| Prerequisite | Status | Actual evidence / limitation |
+| --- | --- | --- |
+| Frozen manifest and dataset | PASS | 32 validated cases, unchanged SHA-256 below; held-out selection is exactly P3-001–023, including backend-only P3-021 |
+| Local SDK/configuration | PASS | Python 3.13.13, Anthropic 1.15.0, httpx2 2.13.1; effective Limits equal defaults; no CHAT limit overrides |
+| Published model/API/pricing | PASS | Official public docs rechecked 2026-10-19 UTC (2026-10-20 Karachi); model ID, strict tools and auto/sequential settings match; no account access inferred |
+| PostgreSQL and saved credential | PASS | Fixed runner validate exit 0; one normal-host disposable migration/vector/readiness test passed, clean/repeated upgrade and DB teardown verified; not a fresh full regression or CREATEROLE test |
+| Runner isolation | PASS | Inspected fixed entry, CI/options rejection, child-only DB URL, ordinary-test key removal, official-host/no-proxy/no-redirect transport and redaction; prior tooling evidence reused |
+| Ledger | PASS | Read-only SQLite integrity_check OK; zero runs/calls/prior charges/reservations, USD 5 remaining; ledger unchanged |
+| Pricing-date guard | PASS at check | UTC date and both pinned pricing literals are 2026-10-19; later UTC execution blocks until a scoped date refresh is approved and verified |
+| Reports/budget/failure safeguards | PASS, offline only | 59 focused SDK/gate/budget tests passed with mocked HTTP; report generation, blocked exits, unknown usage/timeout reservation and zero-retry behavior tested |
+| Server API key | BLOCKED | ANTHROPIC_API_KEY absent in inspected process; no key values accessed or written |
+| Intentional live enablement | BLOCKED | CHAT_ENABLED is not true; preserve until authorized |
+| Owner paid-run approval | BLOCKED | No authorization; fixed ignored approval record absent |
+| Retention acknowledgment | BLOCKED | No owner acknowledgment recorded; account terms/ZDR remain unverified |
+| Actual account access, credits and provider reachability | UNVERIFIED | No provider request; public model documentation does not prove these prerequisites |
+| D11 human review | BLOCKED for closure/release | No reviewer/sign-off; separate from internal technical live-entry prerequisites |
+
+Defaults remain model `claude-sonnet-5-5`, five provider/four tool calls per turn,
+1,024 output tokens/call (including thinking), 48,000 context bytes, 16,000 response
+bytes, 20-second deadline and ten turn attempts/minute. Public prices remain USD
+2/M input, USD 10/M output and USD 4/M maximum documented input cache-write rate;
+the conservative USD 0.267776 reservation and spending policy are unchanged.
+Sources: [model/pricing](https://platform.claude.com/docs/en/models/sonnet-5-5/overview),
+[strict tools](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use),
+[sequential control](https://platform.claude.com/docs/en/agents-and-tools/tool-use/parallel-tool-use).
+
+The restricted disposable test first failed private-temp preflight; the required
+same-command normal-host execution passed (1 test, 7.45s) with no new disposable
+DBs remaining. Preserve the failed `phase3-readiness-20261020-postgres.txt` log.
+The normal runner's ignored numeric timing artifact records create/drop/migrations.
+No credential setup/rotation/deletion, account configuration or ledger write occurred.
+
+Next owner decisions: approve or revise the exact proposed fallback before any
+wording implementation; separately authorize a single paid run of the unchanged
+model/cases/defaults at USD 4.50 maximum/120 Messages calls and acknowledge provider
+retention before any live dispatch. Current estimated cost remains USD 0.60–1.50,
+unmeasured; USD 5 cumulative ceiling, one attempt/case, no automatic paid retries,
+model substitution or fallback remain unchanged. Account/key/configuration must
+then be verified safely. If execution crosses into a later UTC date, a narrow
+pricing-date code/approval-schema refresh and affected tests need authorization;
+no such change was made here. D11 nomination/review can be arranged separately
+but cannot be marked complete without actual evidence.
+
+## Ticket 06 publication context
+
 Ticket 06 implementation is authorized. Owner subsequently authorized one scoped
 commit/push after independent review and required local verification pass. Live
 calls remain explicitly prohibited for this publication task. Combined Phase 3
@@ -156,6 +250,7 @@ record and all model/budget/access/retention gates still apply before Messages.
 
 Executed results/failures belong in [PROGRESS](PROGRESS.md). Live quality and the
 combined Phase 3 exit remain blocked without approved live evidence. D01/D11 exact
-wording/named reviewer remain separate release approvals. Hosted Actions for the
-eventual exact Ticket 06 commit are checked after the owner-authorized publication;
-passing Actions at `78f3f3e` support entry only. No next-phase work is authorized.
+wording review remains a separate release gate: D01 owner/technical wording is
+resolved, while D11 named human reviewer/sign-off remains pending. Exact Ticket 06
+Actions passed at `2936fdb`; D01 publication requires its own exact-commit result.
+No next-phase work is authorized.
