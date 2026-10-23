@@ -1,5 +1,105 @@
 # Decisions and PRD review
 
+## Ticket 01 frontend and verification seams — 2026-10-23
+
+Owner authorized Ticket 01 implementation and approved browser -> real HTTPS
+proxy -> FastAPI -> disposable PostgreSQL plus direct HTTPS proxy requests as
+the TDD seams. Independent read-only consent/write assertions and test-process
+clock control are approved. External provider HTTP alone is scripted through the
+existing pinned Anthropic SDK/adapter. No production clock override, live AI call,
+later ticket, branch, commit or push is authorized by this approval.
+
+Reuse backend v1 authentication/history/disclosure/ownership contracts unchanged.
+The browser persists only one conversation UUID as a resume pointer; every load
+still requires live authentication and backend ownership verification. No listing,
+guest transfer or ownership mechanism is added. A missing/inaccessible pointer
+returns to explicit disclosure acceptance, with old input/history/retry state
+removed. Loading remains visible until history/disclosure recovery finishes.
+
+Use the existing current-user trusted localhost certificate and matching personal
+certificate, exported into private temporary storage for integration tests. Both
+HTTPS hops verify certificates; no trust-store change or TLS bypass was needed.
+The fixed loopback proxy allows only auth/disclosure/conversation method/path
+pairs, preserves Origin/cookies/CSRF/fetch metadata, and does not trust forwarded
+identity or client-IP headers. Existing IP rate limits are shared at loopback in
+this local-only setup; public proxy deployment remains outside scope.
+
+Review identified a CSRF-bootstrap race: the backend correctly replaces expired
+sessions with guest sessions. Therefore bootstrap CSRF before resolving the final
+patient identity; never keep an earlier patient identity across that cookie-setting
+response. Preserve the backend's guest capability while keeping it unavailable in
+the MVP interface. Successful session checks must also compare user/patient
+identity with the identity owning displayed state; a cookie change from another
+login must clear the old transcript even when the new session is valid.
+Review findings and final execution evidence are recorded in
+PROGRESS when verification stabilizes; this entry alone claims no completed gate.
+
+## MVP specification approval and ticket publication — 2026-10-23
+
+Owner referred to the MVP specification/implementation plan as approved and
+explicitly invoked `to-tickets`, planning only. Reuse the already approved five
+slices and blocking edges without a repeat granularity interview: 01/02 have no
+ticket blockers, 03 depends on 02, 04 on 01, and 05 on 03/04. No merge, split,
+prefactor or sixth ticket is needed. Ticket 02 is an independently verifiable
+operator-to-index slice; Ticket 03 is independently verifiable through authenticated
+chat/source APIs, with browser integration completed before the final demo gate.
+
+Publish five separate local Markdown tickets with `ready-for-agent`; the label
+and dependency frontier do not authorize implementation. Preserve the parent
+tracker specification unchanged. This approval supersedes the prior deferral of
+ticket creation and pending specification review, not corpus text approval,
+external-run/free-only protection, individual implementation approval, Git or
+release gates. No code, branch, embedding/indexing, provider call, paid operation,
+commit or push is authorized. Outstanding Phase 3 live/D11 gates remain open.
+
+## Patient portfolio MVP scope and documentation approval — 2026-10-23
+
+Owner approved a separate patient-only vertical slice on the implementation through
+`faf65fb`: sign-in, disclosed saved chat, verified operational FAQ excerpt/citation,
+AI-tool doctor/slot discovery, exact booking review, explicit confirmation and
+persisted appointment display. English only. Cancellation/rescheduling UI, staff/
+handoff queues, knowledge-management screens, uploads/web ingestion, clinical
+preparation, multilingual support and public hosting are deferred. Existing backend
+behavior and the project PRD/full phase scopes are preserved. The time target is
+about one day, without weakening checks or promising a completion date.
+
+Select Voyage `voyage-4-lite`, 1,024-dimensional floats in PostgreSQL/pgvector,
+document/query input types, deterministic reviewed-source chunking, manifest/hash
+provenance and bounded exact cosine retrieval. Preserve Anthropic and the custom
+sequential loop. No reranker/framework/extra agent/runtime is added. Real account
+free allowance and billing protection must be verified before any bounded external
+run; no paid Voyage overages, recharge or automatic provider fallback. Published
+allowances and a key are not execution approval. Existing Anthropic paid-run and
+spending gates remain separate. Source documents below the linked PRD are drafts,
+not yet owner-approved/effective/indexed. Provider disclosure/retention verification
+must cover Voyage without changing v1 consent implicitly.
+
+Preserve strict v1 empty citations and existing tool behavior. Opt-in v2 conversation
+creation stores an immutable negotiated response version; shared endpoints/loop
+decode old/new history. Only backend-validated source versions/passages supply
+citations and exact excerpts. New answers recheck eligibility; historical answers
+remain immutable and visibly historical, with withdrawn/superseded source status.
+Use same-origin local HTTPS with certificate verification, existing cookies/Origin/
+CSRF, and existing booking confirmation. Proof/retry material stays in page memory;
+uncertain timeouts reuse original material, and refresh reconciles without automatic
+replacement mutations. Frontend restrictions never replace backend authorization.
+
+Owner explicitly distinguishes implementation verified, local portfolio demo ready
+and production/release approved. A clearly labelled synthetic development-only
+local portfolio demo may precede outstanding Phase 3 live/D11 closure. This narrow
+exception supersedes earlier general "before demo" restrictions only for this
+milestone, not Phase 3 closure, release, clinical approval or critical technical
+safety/auth/booking gates. No existing blocked gate is marked passed.
+
+Documentation-only drafting is authorized. The owner's final instruction defers
+implementation ticket creation to `to-tickets` after specification review, despite
+the earlier broader request. Canonical [MVP PRD](../plans/mvp-vertical-slice/PRD.md)
+and [implementation plan](../plans/mvp-vertical-slice/IMPLEMENTATION.md) are drafts
+for review; the local tracker points to them with `ready-for-agent`, which grants
+no implementation authority. No branch, code, embeddings/indexing, external API
+call, paid operation, commit or push is approved. No changes to AGENTS, the original
+PRD, frozen evaluations or phase plans are needed for this documentation task.
+
 ## D01 fallback implementation approval — 2026-10-20
 
 Owner approved both TDD seams (public `run_chat` with only the provider scripted;

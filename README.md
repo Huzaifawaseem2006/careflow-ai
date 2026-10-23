@@ -188,6 +188,11 @@ Set `AUTH_ORIGIN` to the exact HTTPS browser origin, without a trailing slash/pa
 
 Browser flow: GET `/auth/csrf`, retaining its HttpOnly cookie and returned CSRF token; POST `/auth/login` with JSON email/password plus matching Origin and X-CSRF-Token. Login replaces both tokens. GET `/auth/me` resolves identity from the stored session; POST `/auth/logout` with matching Origin/CSRF revokes it and clears the cookie. Save the new CSRF value after login; do not put session/CSRF tokens in logs or URLs. Authenticated sessions last eight hours absolutely; pre-login sessions last ten minutes. Reading CSRF does not extend the deadline. All auth responses are no-store. See `docs/API_CONTRACTS.md` for limits, error codes and retry behavior.
 
+The MVP Ticket 01 patient interface now adds verified local HTTPS, sign-in,
+disclosure acceptance and saved v1 chat over these existing services. See
+[frontend setup and verification](docs/FRONTEND.md). Chat remains disabled by default;
+this setup does not authorize an external AI call or implement later MVP tickets.
+
 Run real identity verification with a local maintenance TEST_DATABASE_URL with CREATEDB, CREATEROLE and pgvector-install privileges. Tests create/drop only disposable databases plus a uniquely named temporary login role for the least-privilege check; grants are confined to its disposable database and the role is removed in `finally`. They do not target/reset `careflow_ai`:
 
 ```powershell

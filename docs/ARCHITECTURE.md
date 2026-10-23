@@ -1,12 +1,20 @@
 # Proposed architecture
 
-Status: Phase 0 architecture approved with owner-specified MVP defaults in DECISIONS.md. FastAPI liveness, database configuration, readiness and initial Alembic migration are implemented and verified with local PostgreSQL 17.11 / pgvector 0.8.7. Patient sessions, the Phase 2 Ticket 01 public catalog and Ticket 02 scheduling are implemented as described below; remaining domain modules are planned. Detailed schema/API choices still require task-level review. PRD remains authoritative, with the owner-approved Docker-free amendment dated 2026-10-15.
+Status, clarified 2026-10-23: patient sessions, Phase 2 clinic operations and Phase 3
+catalog/appointment tools, owned conversations and protected action reviews are
+implemented. Phase 3 live evaluation and D11 review remain outstanding; technical
+implementation is not phase closure. Older phase-specific paragraphs below are
+dated implementation snapshots; use the specific contracts and PROGRESS for
+current evidence. The project PRD remains authoritative, with scoped owner
+amendments recorded in DECISIONS. The separate [patient portfolio MVP](../plans/mvp-vertical-slice/PRD.md)
+has a verified Ticket 01 patient frontend; retrieval and later journey slices remain
+unimplemented. See [frontend setup and boundaries](FRONTEND.md).
 
 ## Minimal structure and boundaries
 
-The existing Python package is `backend/careflow/`, with tests in `backend/tests/`, opt-in real PostgreSQL tests in `backend/integration_tests/`, and Alembic scripts in `backend/migrations/`. Future additions: `frontend/`, `evals/` and `knowledge/`; `docs/` and `plans/` already exist. Run services and PostgreSQL natively for the MVP. Docker/Compose is deferred and is not a development prerequisite. Create directories only when their first task needs them.
+The existing Python package is `backend/careflow/`, with tests in `backend/tests/`, opt-in real PostgreSQL tests in `backend/integration_tests/`, and Alembic scripts in `backend/migrations/`. `frontend/` now contains the Ticket 01 Next.js patient interface and fixed HTTPS loopback proxy. `evals/`, `docs/` and `plans/` exist; knowledge source/runtime storage remains a future addition. Run services and PostgreSQL natively for the MVP. Docker/Compose is deferred and is not a development prerequisite. Create directories only when their first task needs them.
 
-Next.js patient/staff UI -> same-origin FastAPI REST -> domain services -> SQLAlchemy/PostgreSQL. One explicit bounded tool loop calls those same services through typed adapters. Owner selected Anthropic Claude Messages API on 2026-10-18, replacing the original OpenAI choice. A small provider interface isolates SDK/protocol details and supports a scripted test provider; orchestration, domain adapters and evals stay independent where practical. pgvector stays in PostgreSQL. No Redis, worker, agent framework, separate vector DB or second live provider initially. Phase 3 is planned, not implemented.
+Next.js patient/staff UI -> same-origin FastAPI REST -> domain services -> SQLAlchemy/PostgreSQL. One explicit bounded tool loop calls those same services through typed adapters. Owner selected Anthropic Claude Messages API on 2026-10-18, replacing the original OpenAI choice. A small provider interface isolates SDK/protocol details and supports a scripted test provider; orchestration, domain adapters and evals stay independent where practical. pgvector stays in PostgreSQL. No Redis, worker, agent framework, separate vector DB or second conversational provider is introduced. The new milestone selects Voyage only for embeddings, as planned below.
 
 Group the PRD logical modules to avoid excessive scaffolding:
 
@@ -157,5 +165,27 @@ Provider configuration is server-only ANTHROPIC_API_KEY from environment or expl
 RAG: approved synthetic local files -> deterministic parse/chunk -> configured embeddings -> versioned pgvector index. Filter by clinic, approval, effective interval and access class before similarity search. Fixed fixtures establish relevance thresholds/top-k; neither numbers nor embedding dimension are invented here. Conflicting or missing evidence causes abstention/handoff. Cite document/version/chunk identifiers and a safe backend source link. Recheck effective approval at answer assembly so withdrawn sources cannot silently remain valid. Pricing in booking comes from authoritative services, not RAG. Retrieval content is untrusted data, never instructions. No internet fetching or arbitrary uploaded URLs in MVP.
 
 ## Delivery scope
+
+### Patient portfolio milestone — approved scope, implementation pending
+
+2026-10-23: the [MVP PRD](../plans/mvp-vertical-slice/PRD.md) and
+[five-slice plan](../plans/mvp-vertical-slice/IMPLEMENTATION.md) add a patient-only
+Next.js UI and minimal Voyage `voyage-4-lite` / `vector(1024)` retrieval to the
+existing backend. Opt-in v2 conversations add backend-verified extractive citations;
+v1 keeps empty citations and existing behavior. One shared loop and existing domain
+services remain. Same-origin HTTPS preserves TLS verification, cookies, Origin and
+CSRF; booking confirmation stays separate with memory-only proof/retry material.
+Only reviewed source versions can support new answers. Voyage calls require verified
+account allowance and free-only controls; no overages or provider fallback.
+
+For this milestone only, the owner permits a clearly labelled synthetic,
+development-only local portfolio demo before Phase 3 live/D11 closure. Distinguish
+implementation verified, local portfolio demo ready and production/release approved.
+Staff/handoff UI and cancellation/rescheduling controls are excluded, while their
+existing backend functionality is preserved. This exception to the original
+full-project demo scope does not complete Phase 3/4/5 or waive technical safety,
+authorization, booking or release gates. No implementation is authorized here.
+
+### Original full-project scope
 
 P0 first; necessary observability starts with the foundation even though FR-13 is P1. Minimal authenticated-patient handoff queue is required by P0 FR-08 before demo; broader staff CRUD remains P1. Arabic and Urdu are post-MVP. Mock reminders, MCP and chat-history expansion remain gated. Owner reaffirmed D10's disclosed PostgreSQL history, bounded context, serialized turns and 30-day synthetic-history direction on 2026-10-18. Concrete guest ownership/transfer and deletion/exception mechanics still need review before content persistence; no new exception is authorized. Existing clinic information such as preparation instructions must be reviewed content, not newly generated clinical guidance.

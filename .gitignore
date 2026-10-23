@@ -9,6 +9,11 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 node_modules/
+.npm-cache/
+*.tsbuildinfo
+*.pem
+*.key
+*.pfx
 .next/
 coverage/
 playwright-report/

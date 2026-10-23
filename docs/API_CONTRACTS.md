@@ -1,6 +1,11 @@
 # Proposed API and tool contracts
 
-Status: health/readiness, patient sessions and Phase 2 clinic operations are implemented. Phase 3 adds [catalog chat](CHAT.md), [owned conversations and appointment reads](CONVERSATIONS.md), and Ticket 03 [availability and protected booking reviews](BOOKING_CHAT.md). Confirmation remains a separate authenticated appointment request. Cancellation/reschedule chat and retrieval remain planned. No client or model assertion substitutes for server authorization.
+Status, clarified 2026-10-23: health/readiness, patient sessions, Phase 2 clinic
+operations and Phase 3 [catalog chat](CHAT.md), [owned conversations](CONVERSATIONS.md)
+and [booking/cancellation/rescheduling reviews](BOOKING_CHAT.md) are implemented.
+Confirmation remains a separate authenticated appointment request. Retrieval and
+opt-in v2 are proposed below, not implemented. No client or model assertion
+substitutes for server authorization; outstanding Phase 3 gates remain open.
 
 ## Common rules
 
@@ -290,3 +295,63 @@ and returns empty actions. Explicit confirmation uses the unchanged authenticate
 HTTPS/origin/CSRF `POST /appointments/{identifier}/reschedule` with original proof
 and idempotency key. No ordinary model output can confirm. See
 [exact action, atomicity, error and replay contracts](BOOKING_CHAT.md).
+
+## Proposed patient portfolio v2 extension — not implemented
+
+2026-10-23: owner approved the separate
+[MVP specification](../plans/mvp-vertical-slice/PRD.md) and planning-only ticket
+publication. Existing implemented contracts above remain unchanged.
+
+- Extend `POST /conversations` with optional `response_version: "1" | "2"`,
+  default `"1"`. Existing rows and requests stay v1. Persist the choice immutably;
+  it grants no identity/authorization. Preserve legacy response shape when v2 is
+  not requested. Keep disclosure acceptance/version separate from response version.
+- The new patient frontend opts into v2. Existing URLs, turn UUID/lease rules,
+  limits, authorization and custom loop stay shared. Public `POST /chat` and v1
+  conversations retain current tools, response version and empty citations.
+- V2 adds a bounded typed passage result and bounded citations. Each citation
+  identifies backend-owned document ID, immutable version, passage ID, title and
+  safe relative source link. Backend code validates exact passage provenance and
+  active source eligibility before rendering; no model-authored citation/URL or
+  policy prose supplies authority. Negotiate new prompt/tool metadata without
+  removing historical versions. Decode saved responses by their version tag.
+- Add one bounded retrieval tool taking search text only. Scope and source/index
+  configuration are server-owned. Voyage embeds documents/queries using the same
+  selected `voyage-4-lite` / 1,024-float configuration; only eligible source versions
+  support new answers. Similarity alone does not prove answer support.
+- Proposed source read: `GET /knowledge/sources/{document_id}/versions/{version}`
+  with optional passage selection, bounded versioned content and current status.
+  Enforce existing HTTPS/session/origin/scope rules and no-store; source viewing
+  accepts only known document/passage identifiers, never arbitrary paths or URLs.
+  The version is immutable; withdrawn/superseded status is reported separately.
+  Historical excerpts remain inspectable as history, not newly effective policy.
+- History/replay retains immutable v2 snapshots and labels historical answers;
+  new turns re-retrieve current evidence. Never recover executable action proof
+  from history. Existing v1 frozen cases/graders and compatibility must still pass.
+- Same-origin Next.js HTTPS forwarding preserves the original browser Origin,
+  CSRF/cookie semantics, certificate verification and backend authority. V2 consent
+  includes a separate Voyage processing supplement before search text is embedded.
+  Neither a key nor a published free allowance authorizes external calls.
+- Booking remains `POST /appointments` with original issued proof, authenticated
+  session/CSRF and stable idempotency key after a distinct click. Keep proof/key
+  memory-only. Ambiguous failures retry exactly while material remains; refresh
+  reconciles current state without automatic replacement mutation. Do not route
+  cancellation/rescheduling reviews through the booking control.
+
+No request model, endpoint, migration, provider call or runtime behavior is changed
+by this planning section. Source route details are a proposed additive interface
+for later ticket review; v1 compatibility and existing error/privacy rules constrain it.
+
+## Ticket 01 local patient interface
+
+The implemented Next.js interface uses the unchanged v1 backend routes through
+an allowlisted `/api` prefix on one HTTPS localhost browser origin. The proxy
+forwards only auth, disclosure and conversation method/path pairs to a fixed HTTPS
+localhost backend, verifying its certificate and preserving original Origin,
+cookies, CSRF, fetch metadata and no-store behavior. No appointment or public
+single-turn chat route is forwarded by this slice. Backend guest capabilities
+remain unchanged; the MVP interface requires a current patient identity before
+chat/history, including after cookie-setting CSRF bootstrap. Session checks also
+discard previous patient state when the authenticated user/patient changes.
+See [setup, browser state and verification](FRONTEND.md). This does not implement
+the proposed v2 extension above.

@@ -1,5 +1,183 @@
 # Progress and verification ledger
 
+## 2026-10-23 — MVP Ticket 01 authenticated frontend verified
+
+Implemented only [Ticket 01](../.scratch/mvp-vertical-slice/issues/01-authenticated-frontend-foundation.md)
+on `master`, HEAD `faf65fb1fe28d5225adf10cff39ccc6a8df0a372`, with the owner's
+implementation and both TDD-seam approvals. Preserved the pre-existing uncommitted
+MVP planning work. The new `frontend/` is a minimal Next.js/TypeScript/Tailwind
+patient interface over unchanged Phase 3 backend services: real sign-in/session
+recovery/logout, backend storage disclosure and explicit acceptance, owned saved
+v1 chat, normal turn submission/history/resume, and responsive labelled forms.
+My Appointments remains a non-working navigation placeholder. No RAG, v2,
+appointment confirmation, later ticket, schema/grant or backend runtime change.
+
+The fixed HTTPS localhost proxy forwards only auth/disclosure/conversation method
+and path pairs. Both TLS hops verify certificates; original Origin, fetch metadata,
+CSRF, secure HttpOnly cookie and no-store behavior are preserved. Reused the
+existing trusted current-user localhost certificate; no certificate-store changes.
+`scripts/export-localhost-tls.ps1` exports only an existing matching trusted
+certificate/key. Tests use private temporary exports, remove key copies on teardown,
+and preserve the original stores. Earlier test export copies were removed from
+their exact owned test directories; logs/public certificate artifacts remain.
+Setup and trust procedure: [FRONTEND](FRONTEND.md).
+
+Only a conversation UUID is persisted as a resume pointer. CSRF bootstrap precedes
+the final `/auth/me` check; history additionally requires backend ownership.
+Unavailable/expired/deleted/foreign pointers return to fresh disclosure acceptance.
+Logout, rejected sessions and a changed current user/patient clear protected UI,
+input, CSRF and retry state and invalidate late responses. Transcripts, credentials,
+CSRF and action proof do not enter browser persistent storage. Provider actions
+are not executable in this UI. Retrying an unavailable turn preserves its UUID in
+page memory, and reload reads server history.
+
+TDD used the approved real browser -> HTTPS proxy -> FastAPI -> disposable
+PostgreSQL and direct HTTPS proxy seams. Consent-write assertions are independent
+read-only SQL; expiry controls exist only in the test process. The real pinned
+Anthropic SDK/adapter uses scripted external HTTP only. Production chat stays
+disabled by default; no external AI call, embedding or hosted-model measurement.
+Red/green cycles covered missing interface, consent, turn/resume, useful credential
+errors, exact unavailable retry and deleted-chat recovery. Initial browser test
+oracle issues (textarea matching and URL normalization) were corrected without
+weakening expected behavior. Relevant red/green logs are under `test-results/`.
+
+Code review, separate axes:
+
+- Standards: one finding, CSRF-bootstrap guest downgrade, reproduced and fixed by
+  resolving identity after bootstrap. Targeted source re-review: no remaining issue.
+- Spec: two findings, the same bootstrap race plus stale patient state after a
+  shared-cookie account change. Both have failing-then-passing real-boundary tests;
+  successful session checks now compare user/patient IDs. Targeted source re-review:
+  no remaining issue. No later-ticket scope creep found.
+
+Actual verification (counts overlap; do not sum nested/focused/full runs):
+
+| Check | Result and evidence |
+| --- | --- |
+| `npm run build`, `npm run lint`, `npm run typecheck` in `frontend/` | Passed. `test-results/ticket01-build-final.txt`, `ticket01-lint-final.txt`, `ticket01-types-final.txt`. Node 22.19.0 / npm 10.9.3, Next 16.4.2, React 19.3.1, Tailwind 4.3.3. |
+| `python scripts/check_foundation.py --report test-results/ticket01-foundation.json` | Format/lint/type checks pass across 104 sources; **320 offline backend/eval tests pass**, no skips, 61.57s pytest. `ticket01-foundation.json`, `.xml`, `.txt`. Python 3.13.13. |
+| `python -m pytest ci_tests ...` | Initial **14 passed, one 120s timeout**, 224.54s. Probe/descendant cleanup confirmed. Unchanged failed negative-lint case **passed** with fresh paths and original deadline, 97.45s. `ticket01-ci.txt/.xml`, `ticket01-ci-retry.txt/.xml`. All 15 CI cases have passing evidence; the initial suite was not a clean pass. |
+| Fixed PostgreSQL runner, `test -TestPath backend/integration_tests/test_frontend_integration.py` | **15 passed**, no skips, 229.36s; real verified TLS/browser/API/DB, only external provider HTTP scripted. `ticket01-browser-final.txt`. All 15 also passed inside the full run after key-cleanup finalizer was added. Playwright 1.55.0, Windows trusted-certificate harness. |
+| Fixed PostgreSQL runner, full `test` | **297 passed, one failed**, no skips, 2393.57s. Failure was `AUTH_UNAVAILABLE` during login in the existing `test_missing_or_forged_booking_details_require_clarification[propose_booking-arguments1]`, before booking validation; its call took 427.84s and coincided with a long host/tool execution interruption. `ticket01-postgres-full.txt`; `postgres-76d488ee48404810848921d6b54b5750.timings.json`. |
+| Runner `validate`, then unchanged failing function via supported `-TestPath` | Credential/connectivity validation passed. All **3 parameter cases passed**, 14.17s; formerly failing call 1.69s. `ticket01-postgres-retry-function.txt`; `postgres-d033a64743a041d48696be07846d1cb8.timings.json`. Both runs confirm no new disposable DBs remain. |
+| Dependency/static extras | `pip check` passes; new integration module passes Linux-targeted mypy. Final `npm audit --include=dev` and production-only audit report zero findings. `ticket01-npm-audit-all.json`, `ticket01-npm-audit.json`. |
+| Browser visual/keyboard evidence | Enter submits sign-in; desktop and 375px mobile layout checked without horizontal overflow. Inspected redacted `ticket01-desktop.png` and `ticket01-mobile.png`; no credentials, tokens or proofs in captures. |
+
+Infrastructure notes: restricted private-temp preflight failed initially, so the
+same PostgreSQL command was rerun on the normal host, as documented. Next worker
+creation was blocked with sandbox `spawn EPERM`; normal-host builds passed.
+The CI timeout and interrupted PostgreSQL login are retained, not represented as
+clean full-suite passes. Access was revalidated before retry; no credential change,
+timeout increase, fixture relaxation or backend change was made. Per AGENTS, reused
+unchanged passing cases and reran the affected cases instead of repeating the full
+suite. The exact underlying host interruption is not isolated. One attempted
+parameter-ID selector was rejected before tests; the supported function selector
+was then used without changing runner safeguards.
+
+Initial npm audit reported five high lint-chain findings. The upstream
+[braces advisory was withdrawn today](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm),
+and the final explicitly development-inclusive audit has zero findings without
+dependency changes. No automatic major downgrade was applied.
+
+Final review passed: complete tracked diff and untracked scope, local Markdown
+links/anchors and whitespace/EOF, dependency lockfile registry hosts, source secret/
+generated-artifact scan, empty staging area and zero exported test-key copies.
+Source hashes and revision are recorded in the ignored
+[source manifest](../test-results/ticket01-source-manifest.json); the
+[tracked diff](../test-results/ticket01-tracked.diff) includes the preserved
+pre-existing planning edits as well as this ticket's changes. New implementation
+files are `frontend/`, `backend/integration_tests/test_frontend_integration.py`,
+`scripts/export-localhost-tls.ps1` and `docs/FRONTEND.md`; supporting changes are
+the dev dependency, ignore rules, setup links, decisions/progress, plan status and
+Ticket 01 acceptance record. No existing backend runtime source changed.
+
+Acceptance criteria are verified with the passing evidence above; Ticket 01 is
+resolved. This is implementation verification only, not complete portfolio demo,
+Phase 3 closure or production/release approval. Hosted CI was not rerun against
+these uncommitted changes. Remaining gates include later-ticket implementation,
+corpus/embedding/retention approvals, actual external-provider evidence and D11.
+No staging, branch, commit, push, deployment or external AI call occurred.
+Next recommended implementation session: separately approved Ticket 02; Ticket 04
+is now dependency-ready but remains separately gated. Do not start either here.
+
+## 2026-10-23 — Approved MVP tickets published, planning only
+
+Owner approved the specification/plan and invoked `to-tickets` without authorizing
+implementation. Preserved the existing uncommitted documentation and HEAD
+`faf65fb1fe28d5225adf10cff39ccc6a8df0a372`. Published five separate local issues
+under `.scratch/mvp-vertical-slice/issues/`, all `ready-for-agent`: authenticated
+frontend; reviewed corpus/indexing; retrieval/v2/citations; conversational booking;
+integrated verification/portfolio handoff. Dependencies remain 02 -> 03,
+01 -> 04, and {03, 04} -> 05. Both 01/02 are on the ticket frontier, but neither
+has implementation approval. Recommended first session remains Ticket 01.
+
+Each ticket records observable behavior, reuse/scope, acceptance checkboxes, tests,
+completion evidence, explicit blockers and approval boundaries. No extra refactor,
+agent or feature ticket was added. PRD/plan approval/publication status is updated;
+the plan links the five issues. The parent local spec entry is unchanged per the
+skill; its pending-review statements are historical and superseded by the owner's
+approval recorded here and in DECISIONS. Corpus text approval, verified free-only
+Voyage access, bounded external runs and separate Anthropic spending gates remain
+pending. Phase 3 live/D11 status and the three readiness levels are preserved.
+
+Documentation verification passed: exactly five `ready-for-agent` tickets with
+55 unchecked acceptance criteria, correct acyclic blocking edges, all 53 local
+links/anchors across 12 Markdown documents, whitespace/EOF checks and documentation-
+only artifact scope. Reviewed new tickets and the complete existing tracked diff;
+the parent tracker entry, original PRD, AGENTS, backend/dependencies and frozen
+evaluations remain unchanged. No application, PostgreSQL, browser or eval suite
+was run or needed for ticket publication; no implementation result is claimed.
+No production code,
+dependency/schema/runtime change, branch, external call, embedding/indexing,
+paid operation, staging, commit or push occurred. Next action is owner review and
+separate approval of Ticket 01, in a fresh implementation session.
+
+## 2026-10-23 — Patient portfolio MVP specification draft
+
+Owner approved documentation-only synthesis using `to-spec`, then explicitly
+deferred implementation ticket files to a later `to-tickets` step after review.
+Started from clean `faf65fb1fe28d5225adf10cff39ccc6a8df0a372`; no existing work
+was displaced. Drafted separate [MVP PRD](../plans/mvp-vertical-slice/PRD.md) and
+[implementation plan](../plans/mvp-vertical-slice/IMPLEMENTATION.md), with a
+[local specification pointer](../.scratch/mvp-vertical-slice/spec.md) labelled
+`ready-for-agent`. This label is not implementation approval. No issues directory
+or ticket file is created. The plan contains exactly five proposed slice summaries
+with dependencies, reuse, acceptance, test boundaries and completion evidence.
+
+PRD includes the exact four-document synthetic corpus for owner text review:
+arrival/check-in, documents to bring, accessibility and payment methods. Every
+document remains draft/unapproved/not effective/not indexed. Selected Voyage
+`voyage-4-lite`, 1,024 float dimensions in pgvector, reproducible indexing, free-only
+account/billing gates, verified extractive citations, opt-in v2 with unchanged v1,
+same-origin HTTPS and protected memory-only booking confirmation are specified.
+The existing Anthropic loop/domain services are preserved. A separate Voyage
+disclosure supplement is required before external embedding use; no implicit v1
+consent change or provider-retention assurance is made.
+
+Narrow DECISIONS/ARCHITECTURE/API updates distinguish proposed behavior from current
+implementation and clarify stale Phase 3 status text. Preserve the project PRD,
+original phase plans, AGENTS, backend and frozen eval inputs. Record the owner's
+three statuses and development-only local demo exception; outstanding Phase 3
+live evaluation and D11 remain open and no phase/release completion is claimed.
+
+Documentation verification: reviewed new documents and tracked diff; all 38 local
+Markdown links/anchors, trailing whitespace/EOF and `git diff --check` pass. Inspected
+configured CI/check scripts: no dedicated Markdown/docs command is configured.
+Application, PostgreSQL and eval suites are not run because executable behavior is
+unchanged; no hosted CI or model-quality evidence is claimed. Final scope/artifact
+review includes all seven Markdown files (four tracked edits and three new),
+28 user stories, five proposed slices and four draft source documents. No secrets,
+embeddings, tickets or generated runtime reports are included; staging and HEAD
+are unchanged.
+
+Remaining gates: owner review of specification/test seams and corpus text; later
+`to-tickets` and individual implementation approval; verified actual Voyage free
+allowance and free-only protection; provider access/retention checks; separately
+authorized bounded external runs and Anthropic paid cases/cost. A published free
+allowance is not account verification. No branch, implementation, certificate-store
+change, embedding/indexing, external API call, paid operation, commit or push was
+performed. Next step is owner specification review, not Ticket 01 implementation.
+
 ## 2026-10-21 — D01 scoped publication review
 
 Owner authorized final review of all seven files against `2936fdb` and, if passing,
